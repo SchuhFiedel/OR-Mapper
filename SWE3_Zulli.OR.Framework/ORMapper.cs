@@ -8,7 +8,7 @@ namespace SWE3_Zulli.OR.Framework
     public static class ORMapper
     {
         /// <summary>Entities.</summary>
-        private static Dictionary<Type, __Entity> _Entities = new Dictionary<Type, __Entity>();
+        private static Dictionary<Type, __Entity> _EntitiesDict = new();
 
         /// <summary>Gets or sets the database connection used by the framework.</summary>
         public static IDbConnection Connection { get; set; }
@@ -27,50 +27,52 @@ namespace SWE3_Zulli.OR.Framework
         /// <returns>Entity.</returns>
         internal static __Entity _GetEntity(this object obj)
         {
-            Type type = ((obj is Type) ? (Type)obj : obj.GetType());
+            Type type = null;
+            if (obj is Type @otype)
+                type = @otype;
+            else
+                type = obj.GetType();
+            
+            if (!_EntitiesDict.ContainsKey(type))
+                _EntitiesDict.Add(type, new __Entity(type));
 
-            if (!_Entities.ContainsKey(type))
-            {
-                _Entities.Add(type, new __Entity(type));
-            }
-
-            return _Entities[type];
+            return _EntitiesDict[type];
         }
 
         /// <summary>Saves an object.</summary>
         /// <param name="obj">Object.</param>
         public static void Save(object obj)
         {
-            __Entity ent = obj._GetEntity();
+            __Entity entity = obj._GetEntity();
 
             IDbCommand cmd = Connection.CreateCommand();
-            cmd.CommandText = ("INSERT INTO " + ent.TableName + " (");
+            cmd.CommandText = ("INSERT INTO " + entity.TableName + " (");
 
-            string update = "ON CONFLICT (" + ent.PrimaryKey.ColumnName + ") DO UPDATE SET ";
+            string update = "ON CONFLICT (" + entity.PrimaryKey.ColumnName + ") DO UPDATE SET ";
             string insert = "";
 
             IDataParameter param;
             bool first = true;
-            for (int i = 0; i < ent.Internals.Length; i++)
+            for (int i = 0; i < entity.InternalFields.Length; i++)
             {
                 if (i > 0) { cmd.CommandText += ", "; insert += ", "; }
-                cmd.CommandText += ent.Internals[i].ColumnName;
+                cmd.CommandText += entity.InternalFields[i].ColumnName;
 
                 insert += ("@v" + i.ToString());
 
                 param = cmd.CreateParameter();
                 param.ParameterName = ("@v" + i.ToString());
-                param.Value = ent.Internals[i].ToColumnType(ent.Internals[i].GetValue(obj));
+                param.Value = entity.InternalFields[i].ToColumnType(entity.InternalFields[i].GetValue(obj));
                 cmd.Parameters.Add(param);
 
-                if (!ent.Internals[i].IsPrimaryKey)
+                if (!entity.InternalFields[i].IsPrimaryKey)
                 {
                     if (first) { first = false; } else { update += ", "; }
-                    update += (ent.Internals[i].ColumnName + " = " + ("@x" + i.ToString()));
+                    update += (entity.InternalFields[i].ColumnName + " = " + ("@x" + i.ToString()));
 
                     param = cmd.CreateParameter();
                     param.ParameterName = ("@x" + i.ToString());
-                    param.Value = ent.Internals[i].ToColumnType(ent.Internals[i].GetValue(obj));
+                    param.Value = entity.InternalFields[i].ToColumnType(entity.InternalFields[i].GetValue(obj));
 
                     cmd.Parameters.Add(param);
                 }
@@ -79,6 +81,12 @@ namespace SWE3_Zulli.OR.Framework
 
             cmd.ExecuteNonQuery();
             cmd.Dispose();
+
+            //für n:m 19.10.2021
+            foreach(__Field field in entity.ExternalFields)
+            {
+                field.UpdateReferences(obj);
+            }
         }
 
 
@@ -93,12 +101,12 @@ namespace SWE3_Zulli.OR.Framework
             {
                 foreach (object i in localCache)
                 {
-                    if (i.GetType() != type) continue;
-
-                    if (type._GetEntity().PrimaryKey.GetValue(i).Equals(primarykey)) { return i; }
+                    if (i.GetType() != type)
+                        continue;
+                    if (type._GetEntity().PrimaryKey.GetValue(i).Equals(primarykey))
+                        return i;
                 }
             }
-
             return null;
         }
 
@@ -111,7 +119,12 @@ namespace SWE3_Zulli.OR.Framework
         internal static object _CreateObject(Type type, IDataReader reader, ICollection<object> localCache)
         {
             __Entity ent = type._GetEntity();
-            object returnValue = _SearchCache(type, ent.PrimaryKey.ToFieldType(reader.GetValue(reader.GetOrdinal(ent.PrimaryKey.ColumnName)), localCache), localCache);
+            object returnValue = _SearchCache(type, 
+                ent.PrimaryKey.ToFieldType(
+                    reader.GetValue(
+                        reader.GetOrdinal(ent.PrimaryKey.ColumnName)),
+                    localCache),
+                localCache);
 
             if (returnValue == null)
             {
@@ -119,14 +132,22 @@ namespace SWE3_Zulli.OR.Framework
                 localCache.Add(returnValue = Activator.CreateInstance(type));
             }
 
-            foreach (__Field internalField in ent.Internals)
+            foreach (__Field internalField in ent.InternalFields)
             {
-                internalField.SetValue(returnValue, internalField.ToFieldType(reader.GetValue(reader.GetOrdinal(internalField.ColumnName)), localCache));
+                internalField.SetValue(returnValue,
+                    internalField.ToFieldType(
+                        reader.GetValue(
+                            reader.GetOrdinal(internalField.ColumnName)), 
+                        localCache));
             }
 
-            foreach (__Field externalField in ent.Externals)
+            foreach (__Field externalField in ent.ExternalFields)
             {
-                externalField.SetValue(returnValue, externalField.Fill(Activator.CreateInstance(externalField.Type), returnValue, localCache));
+                externalField.SetValue(returnValue,
+                    externalField.Fill(
+                        Activator.CreateInstance(externalField.Type),
+                        returnValue,
+                        localCache));
             }
 
             return returnValue;
@@ -146,10 +167,10 @@ namespace SWE3_Zulli.OR.Framework
             {
                 IDbCommand cmd = Connection.CreateCommand();
 
-                cmd.CommandText = type._GetEntity().GetSQL() + " WHERE " + type._GetEntity().PrimaryKey.ColumnName + " = :pk";
+                cmd.CommandText = type._GetEntity().GetSQL() + " WHERE " + type._GetEntity().PrimaryKey.ColumnName + " = @pk";
 
                 IDataParameter parameter = cmd.CreateParameter();
-                parameter.ParameterName = (":pk");
+                parameter.ParameterName = ("@pk");
                 parameter.Value = privateKey;
                 cmd.Parameters.Add(parameter);
 

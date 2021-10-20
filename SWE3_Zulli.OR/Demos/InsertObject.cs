@@ -11,13 +11,16 @@ namespace SWE3_Zulli.OR.Demos
             Console.WriteLine("InsertObject");
             Console.WriteLine("*************");
 
-            Person max = new Person();
+            Person max = new()
+            {
+                ID = 01,
+                FirstName = "Max",
+                LastName = "Zulli",
+                Gender = Gender.MALE,
+                BirthDate = DateTime.Now
+            };
 
-            max.ID = 01;
-            max.FirstName = "Max";
-            max.LastName = "Zulli";
-            max.Gender = Gender.MALE;
-            max.BirthDate = DateTime.Now;
+            Console.WriteLine(max.ToString());
 
             ORMapper.Save(max);
 

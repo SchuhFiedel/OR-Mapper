@@ -6,6 +6,7 @@ using System.Reflection;
 
 namespace SWE3_Zulli.OR.Framework.MetaModel
 {
+    /*
     /// <summary>This class holds entity metadata.</summary>
     internal class MEntity
     {
@@ -21,13 +22,13 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
             else { TableName = tattr.TableName; }
 
             Member = type;
-            List<MField> fields = new List<MField>();
+            List<MField> fields = new();
 
             foreach(PropertyInfo pInfo in type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
             {
                 if((IgnoreAttribute) pInfo.GetCustomAttribute(typeof(IgnoreAttribute)) != null) continue;
 
-                MField field = new MField(this);
+                MField field = new(this);
 
                 FieldAttribute fattr = (FieldAttribute)pInfo.GetCustomAttribute(typeof(FieldAttribute));
 
@@ -88,5 +89,5 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
         {
             get; private set;
         }
-    }
+    }*/
 }

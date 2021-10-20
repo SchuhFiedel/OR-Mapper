@@ -1,11 +1,13 @@
 ﻿using System;
 using SWE3_Zulli.OR.Framework.MetaModel;
 using SWE3_Zulli.OR.Demos;
-
+using SWE3_Zulli.OR.Framework;
+using System.Reflection;
 
 namespace SWE3_Zulli.OR.Models
 {
-    class Person
+    [Entity(TableName = "person")]
+    public class Person
     {
         /// <summary>
         /// Gets or Sets Person ID
@@ -35,6 +37,16 @@ namespace SWE3_Zulli.OR.Models
         /// <summary>Gets or sets the person's birth date.</summary>
         [Field(ColumnName = "birthdate")]
         public DateTime BirthDate { get; set; }
+
+        public string ToString()
+        {
+            string retval = this.GetType().Name;
+            foreach (PropertyInfo prop in this.GetType().GetProperties())
+            {
+                retval += " " + prop.Name + ": " + prop.GetValue(this) + ";";
+            }
+            return retval;
+        }
     }
 
     /// <summary>This enumeration defines genders.</summary>
@@ -44,4 +56,6 @@ namespace SWE3_Zulli.OR.Models
         MALE = 1,
         OTHER = 2
     }
+
+    
 }

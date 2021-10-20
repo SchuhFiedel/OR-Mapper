@@ -23,8 +23,8 @@ namespace SWE3_Zulli.OR
             InsertObject.Show();
             /*
             ModifyObject.Show();
-            WithFK.Show();
-            WithFKList.Show();
+            WithForeignKey.Show();
+            WithForeignKeyKList.Show();
             */
             ORMapper.Connection.Close();
         }

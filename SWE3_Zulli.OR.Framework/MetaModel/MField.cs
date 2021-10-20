@@ -5,6 +5,7 @@ using System.Reflection;
 
 namespace SWE3_Zulli.OR.Framework.MetaModel
 {
+    /*
     /// <summary>This class holds field metadata.</summary>
     internal class MField
     {
@@ -24,7 +25,7 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
         }
 
         /// <summary>Gets the field member.</summary>
-        public MemberInfo Member
+        public PropertyInfo Member
         {
             get; internal set;
         }
@@ -32,12 +33,7 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
         /// <summary>Gets the field type.</summary>
         public Type Type
         {
-            get
-            {
-                if(Member is PropertyInfo) { return ((PropertyInfo) Member).PropertyType; }
-
-                throw new NotSupportedException("Member type not supported.");
-            }
+            get{ return Member.PropertyType; }
         }
 
         /// <summary>Gets the column name in table.</summary>
@@ -71,4 +67,5 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
             get; internal set;
         } = false;
     }
+    */
 }

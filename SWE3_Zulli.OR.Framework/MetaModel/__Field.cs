@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SWE3_Zulli.OR.Framework.Intefaces;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Data;
@@ -26,20 +27,15 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
         }
 
         /// <summary>Gets the field member.</summary>
-        public MemberInfo Member
+        public PropertyInfo Member
         {
             get; internal set;
         }
 
         /// <summary>Gets the field type.</summary>
         public Type Type
-        {
-            get
-            {
-                if(Member is PropertyInfo) { return ((PropertyInfo) Member).PropertyType; }
-
-                throw new NotSupportedException("Member type not supported.");
-            }
+        { 
+            get { return Member.PropertyType; } 
         }
 
         /// <summary>Gets the column name in table.</summary>
@@ -101,19 +97,23 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
         /// <returns>Database type representation of the value.</returns>
         public object ToColumnType(object value)
         {
-            if(IsForeignKey)
+            if(IsForeignKey == true)
             {
+                if (value == null) { return null; }
+
+                //Type type = typeof(ILazy).IsAssignableFrom(Type) ? Type.GenericTypeArguments[0] : Type;
+
                 return Type._GetEntity().PrimaryKey.ToColumnType(Type._GetEntity().PrimaryKey.GetValue(value));
             }
 
             if(Type == ColumnType) { return value; }
 
             //Convert Bool to integer Types -> Bools lead to errors in some DBS
-            if(value is bool)
+            if(value is bool @boolean)
             {
-                if(ColumnType == typeof(int)) { return (((bool) value) ? 1 : 0); }
-                if(ColumnType == typeof(short)) { return (short) (((bool) value) ? 1 : 0); }
-                if(ColumnType == typeof(long)) { return (long) (((bool) value) ? 1 : 0); }
+                if(ColumnType == typeof(int)) { return (@boolean ? 1 : 0); }
+                if(ColumnType == typeof(short)) { return (short) (@boolean ? 1 : 0); }
+                if(ColumnType == typeof(long)) { return (long) (@boolean ? 1 : 0); }
             }
 
             //Convert Enum Types to integer types -> Enums Lead to errors in PostgreSQL
@@ -134,15 +134,18 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
         {
             if(IsForeignKey)
             {
+                /*if (typeof(ILazy).IsAssignableFrom(Type))
+                {
+                    return Activator.CreateInstance(Type, value);
+                }*/
                 return ORMapper._CreateObject(Type, value, localCache);
             }
 
-
             if(Type == typeof(bool))
             {
-                if(value is int) { return ((int) value != 0); }
-                if(value is short) { return ((short) value != 0); }
-                if(value is long) { return ((long) value != 0); }
+                if(value is int @int) { return (@int != 0); }
+                if(value is short @short) { return (@short != 0); }
+                if(value is long @long) { return (@long != 0); }
             }
 
             if(Type == typeof(short)) { return Convert.ToInt16(value); }
@@ -159,9 +162,7 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
         /// <returns>Field value.</returns>
         public object GetValue(object obj)
         {
-            if(Member is PropertyInfo) { return ((PropertyInfo) Member).GetValue(obj); }
-
-            throw new NotSupportedException("Member type not supported.");
+            return  Member.GetValue(obj);
         }
 
         /// <summary>Sets the field value.</summary>
@@ -169,13 +170,7 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
         /// <param name="value">Value.</param>
         public void SetValue(object obj, object value)
         {
-            if(Member is PropertyInfo)
-            {
-                ((PropertyInfo) Member).SetValue(obj, value);
-                return;
-            }
-
-            throw new NotSupportedException("Member type not supported.");
+            Member.SetValue(obj, value);return;
         }
 
         /// <summary>Fills a list for a foreign key.</summary>
@@ -190,15 +185,15 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
             if(IsManyToMany)
             {
                 cmd.CommandText = Type.GenericTypeArguments[0]._GetEntity().GetSQL() +
-                                  " WHERE ID IN (SELECT " + RemoteColumnName + " FROM " + AssignmentTable + " WHERE " + ColumnName + " = :fk)";
+                                  " WHERE ID IN (SELECT " + RemoteColumnName + " FROM " + AssignmentTable + " WHERE " + ColumnName + " = @fk)";
             }
             else
             {
-                cmd.CommandText = Type.GenericTypeArguments[0]._GetEntity().GetSQL() + " WHERE " + ColumnName + " = :fk";
+                cmd.CommandText = Type.GenericTypeArguments[0]._GetEntity().GetSQL() + " WHERE " + ColumnName + " = @fk";
             }
 
             IDataParameter p = cmd.CreateParameter();
-            p.ParameterName = ":fk";
+            p.ParameterName = "@fk";
             p.Value = Entity.PrimaryKey.GetValue(obj);
             cmd.Parameters.Add(p);
 
@@ -212,6 +207,108 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
             cmd.Dispose();
 
             return list;
+        }
+
+        //für n:m 19.10.2021
+        public void UpdateReferences(object obj)
+        {
+            if (!IsExternal) return;
+
+            Type innerType = Type.GetGenericArguments()[0];
+            __Entity innerEntity = innerType._GetEntity();
+
+            object pk = Entity.PrimaryKey.ToColumnType(Entity.PrimaryKey.GetValue(obj));
+
+            if (IsManyToMany)
+            {
+                IDbCommand cmd = ORMapper.Connection.CreateCommand();
+                cmd.CommandText = ("DELETE FROM " + AssignmentTable + " WHERE " + ColumnName + " = @pk");
+                IDataParameter p = cmd.CreateParameter();
+
+                p.ParameterName = "@pk";
+                p.Value = pk;
+
+                cmd.Parameters.Add(p);
+
+                cmd.ExecuteNonQuery();
+                cmd.Dispose();
+
+                if(GetValue(obj) != null)
+                {
+                    foreach ( object i in (IEnumerable)GetValue(obj))
+                    {
+                        cmd = ORMapper.Connection.CreateCommand();
+                        cmd.CommandText = "INSERT INTO " + AssignmentTable + 
+                            " (" + ColumnName + " , " + RemoteColumnName +
+                            ") VALUES ( @pk, @fk)";
+
+                        p.ParameterName = "@pk";
+                        p.Value = pk;
+
+                        cmd.Parameters.Add(p);
+
+                        p.ParameterName = "@fk";
+                        p.Value = innerEntity.PrimaryKey.ToColumnType(innerEntity.PrimaryKey.GetValue(i));
+
+                        cmd.Parameters.Add(p);
+
+                        cmd.ExecuteNonQuery();
+                        cmd.Dispose();
+                    }
+                }
+                else
+                {
+                    __Field remoteField = innerEntity.GetFieldForColumn(ColumnName);
+
+                    if (remoteField.IsNullable)
+                    {
+                        try
+                        {
+                            cmd = ORMapper.Connection.CreateCommand();
+                            cmd.CommandText = ("UPDATe " + innerEntity.TableName + " SET " + ColumnName + " = NULL WHERE " + ColumnName + " = @fk");
+
+                            p = cmd.CreateParameter();
+
+                            p.ParameterName = "@fk";
+                            p.Value = pk;
+
+                            cmd.Parameters.Add(p);
+
+                            cmd.ExecuteNonQuery();
+                            cmd.Dispose();
+                        }
+                        catch (Exception) { }
+                    }
+                    
+                    if(GetValue(obj) != null)
+                    {
+                        foreach(object i in (IEnumerable)GetValue(obj))
+                        {
+                            remoteField.SetValue(i, obj);
+
+                            cmd = ORMapper.Connection.CreateCommand();
+                            cmd.CommandText = ("Update " + innerEntity.TableName + "Set " + ColumnName + " = @fk WHERE " + innerEntity.PrimaryKey.ColumnName + " = @pk");
+
+                            p = cmd.CreateParameter();
+
+                            p.ParameterName = "@fk";
+                            p.Value = pk;
+
+                            cmd.Parameters.Add(p);
+
+                            p = cmd.CreateParameter();
+
+                            p.ParameterName = "@pk";
+                            p.Value = innerEntity.PrimaryKey.ToColumnType(innerEntity.PrimaryKey.GetValue(i));
+
+                            cmd.Parameters.Add(p);
+
+                            cmd.ExecuteNonQuery();
+                            cmd.Dispose();
+                        }
+                    }
+                }
+            }
         }
     }
 }

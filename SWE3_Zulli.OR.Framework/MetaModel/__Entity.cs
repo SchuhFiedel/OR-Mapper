@@ -11,65 +11,78 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
     /// <summary>This class holds metadata for entity.</summary>
     internal class __Entity
     {
+        bool NamesToLowerFlag = true;
+
         /// <summary>Creates a new instance of this class.</summary>
         /// <param name="type">Variable/Entity Type.</param>
         public __Entity(Type type)
         {
-            EntityAttribute tattr = (EntityAttribute)type.GetCustomAttribute(typeof(EntityAttribute));
-            if((tattr == null) || (string.IsNullOrWhiteSpace(tattr.TableName)))
+            //set tablename
+            EntityAttribute typeattr = (EntityAttribute)type.GetCustomAttribute(typeof(EntityAttribute));
+            if((typeattr == null) || (string.IsNullOrWhiteSpace(typeattr.TableName)))
             {
-                TableName = type.Name.ToUpper();
+                //MAYBE NEED To CHANGE THAT TO "ToLower()"?
+                if (NamesToLowerFlag) TableName = type.Name.ToLower();
+                else TableName = type.Name.ToUpper();
+
             }
-            else { TableName = tattr.TableName; }
+            else { TableName = typeattr.TableName; }
 
+            //set Member
             Member = type;
-            List<__Field> fields = new List<__Field>();
 
-            foreach(PropertyInfo pInfo in type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+            List<__Field> fields = new();
+
+            //get all Properties for the object type and iterate through them 
+            foreach(PropertyInfo propInfo in type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
             {
-                if((IgnoreAttribute)pInfo.GetCustomAttribute(typeof(IgnoreAttribute)) != null) continue;
+                //if IgnoreAttribute on the property continue to next property
+                if((IgnoreAttribute)propInfo.GetCustomAttribute(typeof(IgnoreAttribute)) != null) continue;
 
-                __Field field = new __Field(this);
+                //Make a new __Field object using this __Entity object
+                __Field field = new __Field(this); 
 
-                FieldAttribute fattr = (FieldAttribute)pInfo.GetCustomAttribute(typeof(FieldAttribute));
+                //get field attirbute
+                FieldAttribute fieldattr = (FieldAttribute)propInfo.GetCustomAttribute(typeof(FieldAttribute));
 
-                if(fattr != null)
+                if(fieldattr != null) //if there is a filed attribute
                 {
-                    if(fattr is PrimaryKeyAttribute)
+                    if(fieldattr is PrimaryKeyAttribute) //and it is a primaryKey
                     {
                         PrimaryKey = field;
                         field.IsPrimaryKey = true;
                     }
 
-                    field.ColumnName = (fattr?.ColumnName ?? pInfo.Name);
-                    field.ColumnType = (fattr?.ColumnType ?? pInfo.PropertyType);
+                    //set all informations in field according to PropertyInfo
+                    field.ColumnName = fieldattr.ColumnName ?? propInfo.Name;
+                    field.ColumnType = fieldattr.ColumnType ?? propInfo.PropertyType;
+                    field.IsNullable = fieldattr.Nullable;
 
-                    field.IsNullable = fattr.Nullable;
-
-                    if(field.IsForeignKey = (fattr is ForeignKeyAttribute))
+                    if(field.IsForeignKey = fieldattr is ForeignKeyAttribute ) //if it is a foreignkey
                     {
-                        field.IsExternal = typeof(IEnumerable).IsAssignableFrom(pInfo.PropertyType);
+                        ForeignKeyAttribute foreignattr = (ForeignKeyAttribute)fieldattr;
+                        field.IsExternal = typeof(IEnumerable).IsAssignableFrom(propInfo.PropertyType);
 
-                        field.AssignmentTable  = ((ForeignKeyAttribute) fattr).AssignmentTable;
-                        field.RemoteColumnName = ((ForeignKeyAttribute) fattr).RemoteColumnName;
-                        field.IsManyToMany = (!string.IsNullOrWhiteSpace(field.AssignmentTable));
+                        field.AssignmentTable  = foreignattr.AssignmentTable;
+                        field.RemoteColumnName = foreignattr.RemoteColumnName;
+                        field.IsManyToMany = (!string.IsNullOrWhiteSpace(field.AssignmentTable)); //m:n?
                     }
                 }
                 else
                 {
-                    if((pInfo.GetGetMethod() == null) || (!pInfo.GetGetMethod().IsPublic)) continue;
+                    if((propInfo.GetGetMethod() == null) || (!propInfo.GetGetMethod().IsPublic)) continue;
 
-                    field.ColumnName = pInfo.Name;
-                    field.ColumnType = pInfo.PropertyType;
+                    field.ColumnName = propInfo.Name;
+                    field.ColumnType = propInfo.PropertyType;
                 }
-                field.Member = pInfo;
+                field.Member = propInfo;
 
                 fields.Add(field);
             }
 
             Fields = fields.ToArray();
-            Internals = fields.Where(m => (!m.IsExternal)).ToArray();
-            Externals  = fields.Where(m => m.IsExternal).ToArray();
+            InternalFields = fields.Where(m => (!m.IsExternal)).ToArray();
+            ExternalFields  = fields.Where(m => m.IsExternal).ToArray();
         }
 
 
@@ -93,13 +106,13 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
 
         /// <summary>Gets external fields.</summary>
         /// <remarks>External fields are referenced fields that do not belong to the underlying table.</remarks>
-        public __Field[] Externals
+        public __Field[] ExternalFields
         {
             get; private set;
         }
 
         /// <summary>Gets internal fields.</summary>
-        public __Field[] Internals
+        public __Field[] InternalFields
         {
             get; private set;
         }
@@ -121,10 +134,10 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
             }
 
             string returnValue = "SELECT ";
-            for(int i = 0; i < Internals.Length; i++)
+            for(int i = 0; i < InternalFields.Length; i++)
             {
                 if(i > 0) { returnValue += ", "; }
-                returnValue += prefix.Trim() + Internals[i].ColumnName;
+                returnValue += prefix.Trim() + InternalFields[i].ColumnName;
             }
             returnValue += (" FROM " + TableName);
             return returnValue;
@@ -136,7 +149,7 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
         public __Field GetFieldForColumn(string columnName)
         {
             columnName = columnName.ToUpper();
-            foreach(__Field internalField in Internals)
+            foreach(__Field internalField in InternalFields)
             {
                 if(internalField.ColumnName.ToUpper() == columnName) { return internalField; }
             }
