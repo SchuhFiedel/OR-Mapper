@@ -9,29 +9,32 @@ using System.Reflection;
 namespace SWE3_Zulli.OR.Framework.MetaModel
 {
     /// <summary>This class holds metadata for entity.</summary>
-    internal class __Entity
+    internal class Table
     {
         bool NamesToLowerFlag = true;
 
         /// <summary>Creates a new instance of this class.</summary>
-        /// <param name="type">Variable/Entity Type.</param>
-        public __Entity(Type type)
+        /// <param name="type">Variable/Table Type.</param>
+        public Table(Type type)
         {
             //set tablename
-            EntityAttribute typeattr = (EntityAttribute)type.GetCustomAttribute(typeof(EntityAttribute));
+            TableAttribute typeattr = (TableAttribute)type.GetCustomAttribute(typeof(TableAttribute));
+
             if((typeattr == null) || (string.IsNullOrWhiteSpace(typeattr.TableName)))
             {
-                //MAYBE NEED To CHANGE THAT TO "ToLower()"?
                 if (NamesToLowerFlag) TableName = type.Name.ToLower();
                 else TableName = type.Name.ToUpper();
-
             }
-            else { TableName = typeattr.TableName; }
+            else { 
+                TableName = typeattr.TableName;
+                SubsetQuery = typeattr.SubsetQuery;
+                ChildKey = typeattr.ChildKey;
+            }
 
             //set Member
             Member = type;
 
-            List<__Field> fields = new();
+            List<Column> fields = new();
 
             //get all Properties for the object type and iterate through them 
             foreach(PropertyInfo propInfo in type.GetProperties(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
@@ -39,11 +42,11 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
                 //if IgnoreAttribute on the property continue to next property
                 if((IgnoreAttribute)propInfo.GetCustomAttribute(typeof(IgnoreAttribute)) != null) continue;
 
-                //Make a new __Field object using this __Entity object
-                __Field field = new __Field(this); 
+                //Make a new Column object using this Table object
+                Column field = new Column(this); 
 
                 //get field attirbute
-                FieldAttribute fieldattr = (FieldAttribute)propInfo.GetCustomAttribute(typeof(FieldAttribute));
+                ColumnAttribute fieldattr = (ColumnAttribute)propInfo.GetCustomAttribute(typeof(ColumnAttribute));
 
                 if(fieldattr != null) //if there is a filed attribute
                 {
@@ -63,9 +66,9 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
                         ForeignKeyAttribute foreignattr = (ForeignKeyAttribute)fieldattr;
                         field.IsExternal = typeof(IEnumerable).IsAssignableFrom(propInfo.PropertyType);
 
-                        field.AssignmentTable  = foreignattr.AssignmentTable;
-                        field.RemoteColumnName = foreignattr.RemoteColumnName;
-                        field.IsManyToMany = (!string.IsNullOrWhiteSpace(field.AssignmentTable)); //m:n?
+                        field.TargetTableName  = foreignattr.TargetTableName;
+                        field.TargetColumnName = foreignattr.TargetColumnName;
+                        field.IsManyToMany = (!string.IsNullOrWhiteSpace(field.TargetTableName)); //m:n?
                     }
                 }
                 else
@@ -99,26 +102,38 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
         }
 
         /// <summary>Gets the entity fields.</summary>
-        public __Field[] Fields
+        public Column[] Fields
         {
             get; private set;
         }
 
         /// <summary>Gets external fields.</summary>
         /// <remarks>External fields are referenced fields that do not belong to the underlying table.</remarks>
-        public __Field[] ExternalFields
+        public Column[] ExternalFields
         {
             get; private set;
         }
 
         /// <summary>Gets internal fields.</summary>
-        public __Field[] InternalFields
+        public Column[] InternalFields
         {
             get; private set;
         }
 
         /// <summary>Gets the entity primary key.</summary>
-        public __Field PrimaryKey
+        public Column PrimaryKey
+        {
+            get; private set;
+        }
+
+        /// <summary>Gets the foreign key that references master table.</summary>
+        public string ChildKey
+        {
+            get; private set;
+        }
+
+        /// <summary>Gets the subset query.</summary>
+        public string SubsetQuery
         {
             get; private set;
         }
@@ -139,6 +154,11 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
                 if(i > 0) { returnValue += ", "; }
                 returnValue += prefix.Trim() + InternalFields[i].ColumnName;
             }
+            for (int i = 0; i < ExternalFields.Length; i++)
+            {
+                returnValue += ", ";
+                returnValue += prefix.Trim() + ExternalFields[i].ColumnName;
+            }
             returnValue += (" FROM " + TableName);
             return returnValue;
         }
@@ -146,10 +166,10 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
         /// <summary>Gets a field by its column name.</summary>
         /// <param name="columnName">Column name.</param>
         /// <returns>Field.</returns>
-        public __Field GetFieldForColumn(string columnName)
+        public Column GetFieldForColumn(string columnName)
         {
             columnName = columnName.ToUpper();
-            foreach(__Field internalField in InternalFields)
+            foreach(Column internalField in InternalFields)
             {
                 if(internalField.ColumnName.ToUpper() == columnName) { return internalField; }
             }

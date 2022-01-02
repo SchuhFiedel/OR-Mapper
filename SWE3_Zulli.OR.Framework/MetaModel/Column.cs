@@ -10,29 +10,30 @@ using System.Reflection;
 namespace SWE3_Zulli.OR.Framework.MetaModel
 {
     /// <summary>This class holds field metadata.</summary>
-    internal class __Field
+    internal class Column
     {
- 
+        bool NamesToLowerFlag = true;
+
         /// <summary>Creates a new instance of this class.</summary>
         /// <param name="entity">Parent entity.</param>
-        public __Field(__Entity entity)
+        public Column(Table entity)
         {
-            Entity = entity;
+            Table = entity;
         }
 
         /// <summary>Gets the parent entity.</summary>
-        public __Entity Entity
+        public Table Table
         {
             get; private set;
         }
 
-        /// <summary>Gets the field member.</summary>
+        /// <summary>Gets the Column member.</summary>
         public PropertyInfo Member
         {
             get; internal set;
         }
 
-        /// <summary>Gets the field type.</summary>
+        /// <summary>Gets the Column type.</summary>
         public Type Type
         { 
             get { return Member.PropertyType; } 
@@ -63,18 +64,18 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
         } = false;
 
         /// <summary>Assignment table.</summary>
-        public string AssignmentTable
+        public string TargetTableName
         {
             get; internal set;
         }
 
         /// <summary>Remote (far side) column name.</summary>
-        public string RemoteColumnName
+        public string TargetColumnName
         {
             get; internal set;
         }
 
-        /// <summary>Gets if the field belongs to a m:n relationship.</summary>
+        /// <summary>Gets if the Column belongs to a m:n relationship.</summary>
         public bool IsManyToMany
         {
             get; internal set;
@@ -92,18 +93,16 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
             get; internal set;
         } = false;
 
-        /// <summary>Returns a database column type equivalent for a field type value.</summary>
+        /// <summary>Returns a database column type equivalent for a Column type value.</summary>
         /// <param name="value">Value.</param>
         /// <returns>Database type representation of the value.</returns>
         public object ToColumnType(object value)
         {
-            if(IsForeignKey == true)
+            if(IsForeignKey)
             {
                 if (value == null) { return null; }
 
-                //Type type = typeof(ILazy).IsAssignableFrom(Type) ? Type.GenericTypeArguments[0] : Type;
-
-                return Type._GetEntity().PrimaryKey.ToColumnType(Type._GetEntity().PrimaryKey.GetValue(value));
+                return Type._GetTable().PrimaryKey.ToColumnType(Type._GetTable().PrimaryKey.GetValue(value));
             }
 
             if(Type == ColumnType) { return value; }
@@ -134,11 +133,7 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
         {
             if(IsForeignKey)
             {
-                /*if (typeof(ILazy).IsAssignableFrom(Type))
-                {
-                    return Activator.CreateInstance(Type, value);
-                }*/
-                return ORMapper._CreateObject(Type, value, localCache);
+                return ORMapper._InstantiateObject(Type, value, localCache);
             }
 
             if(Type == typeof(bool))
@@ -162,7 +157,7 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
         /// <returns>Field value.</returns>
         public object GetValue(object obj)
         {
-            return  Member.GetValue(obj);
+            return Member.GetValue(obj);
         }
 
         /// <summary>Sets the field value.</summary>
@@ -170,7 +165,8 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
         /// <param name="value">Value.</param>
         public void SetValue(object obj, object value)
         {
-            Member.SetValue(obj, value);return;
+            Member.SetValue(obj, value);
+            return;
         }
 
         /// <summary>Fills a list for a foreign key.</summary>
@@ -180,33 +176,35 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
         /// <returns>List.</returns>
         public object Fill(object list, object obj, ICollection<object> localCache)
         {
-            IDbCommand cmd = ORMapper.Connection.CreateCommand();
-
-            if(IsManyToMany)
+            using (IDbCommand cmd = ORMapper.Connection.CreateCommand())
             {
-                cmd.CommandText = Type.GenericTypeArguments[0]._GetEntity().GetSQL() +
-                                  " WHERE ID IN (SELECT " + RemoteColumnName + " FROM " + AssignmentTable + " WHERE " + ColumnName + " = @fk)";
-            }
-            else
-            {
-                cmd.CommandText = Type.GenericTypeArguments[0]._GetEntity().GetSQL() + " WHERE " + ColumnName + " = @fk";
-            }
 
-            IDataParameter p = cmd.CreateParameter();
-            p.ParameterName = "@fk";
-            p.Value = Entity.PrimaryKey.GetValue(obj);
-            cmd.Parameters.Add(p);
+                if (IsManyToMany)
+                {
+                    cmd.CommandText = Type.GenericTypeArguments[0]._GetTable().GetSQL() +
+                                      " WHERE ID IN (SELECT " + TargetColumnName + " FROM " + TargetTableName + " WHERE " + ColumnName + " = @fk)";
+                }
+                else
+                {
+                    cmd.CommandText = Type.GenericTypeArguments[0]._GetTable().GetSQL() + " WHERE " + ColumnName + " = @fk";
+                }
 
-            IDataReader re = cmd.ExecuteReader();
-            while(re.Read())
-            {
-                list.GetType().GetMethod("Add").Invoke(list, new object[] { ORMapper._CreateObject(Type.GenericTypeArguments[0], re, localCache) });
+                IDataParameter p = cmd.CreateParameter();
+                p.ParameterName = "@fk";
+                p.Value = Table.PrimaryKey.GetValue(obj);
+                cmd.Parameters.Add(p);
+
+                using (IDataReader re = cmd.ExecuteReader())
+                {
+                    while (re.Read())
+                    {
+                        
+                        list.GetType().GetMethod("Add").Invoke(list, new object[] { ORMapper._InstantiateObject(Type.GenericTypeArguments[0], re.GetValue(re.GetOrdinal("id")) , localCache) });
+                    }
+                }
             }
-            re.Close();
-            re.Dispose();
-            cmd.Dispose();
-
             return list;
+            
         }
 
         //für n:m 19.10.2021
@@ -215,14 +213,14 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
             if (!IsExternal) return;
 
             Type innerType = Type.GetGenericArguments()[0];
-            __Entity innerEntity = innerType._GetEntity();
+            Table innerEntity = innerType._GetTable();
 
-            object pk = Entity.PrimaryKey.ToColumnType(Entity.PrimaryKey.GetValue(obj));
+            object pk = Table.PrimaryKey.ToColumnType(Table.PrimaryKey.GetValue(obj));
 
             if (IsManyToMany)
             {
                 IDbCommand cmd = ORMapper.Connection.CreateCommand();
-                cmd.CommandText = ("DELETE FROM " + AssignmentTable + " WHERE " + ColumnName + " = @pk");
+                cmd.CommandText = ("DELETE FROM " + TargetTableName + " WHERE " + ColumnName + " = @pk");
                 IDataParameter p = cmd.CreateParameter();
 
                 p.ParameterName = "@pk";
@@ -238,8 +236,8 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
                     foreach ( object i in (IEnumerable)GetValue(obj))
                     {
                         cmd = ORMapper.Connection.CreateCommand();
-                        cmd.CommandText = "INSERT INTO " + AssignmentTable + 
-                            " (" + ColumnName + " , " + RemoteColumnName +
+                        cmd.CommandText = "INSERT INTO " + TargetTableName + 
+                            " (" + ColumnName + " , " + TargetColumnName +
                             ") VALUES ( @pk, @fk)";
 
                         p.ParameterName = "@pk";
@@ -258,14 +256,14 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
                 }
                 else
                 {
-                    __Field remoteField = innerEntity.GetFieldForColumn(ColumnName);
+                    Column remoteField = innerEntity.GetFieldForColumn(ColumnName);
 
                     if (remoteField.IsNullable)
                     {
                         try
                         {
                             cmd = ORMapper.Connection.CreateCommand();
-                            cmd.CommandText = ("UPDATe " + innerEntity.TableName + " SET " + ColumnName + " = NULL WHERE " + ColumnName + " = @fk");
+                            cmd.CommandText = ("UPDATE " + innerEntity.TableName + " SET " + ColumnName + " = NULL WHERE " + ColumnName + " = @fk");
 
                             p = cmd.CreateParameter();
 

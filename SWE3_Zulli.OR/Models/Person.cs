@@ -6,7 +6,7 @@ using System.Reflection;
 
 namespace SWE3_Zulli.OR.Models
 {
-    [Entity(TableName = "person")]
+    [Table(TableName = "person")]
     public class Person
     {
         /// <summary>
@@ -18,24 +18,24 @@ namespace SWE3_Zulli.OR.Models
         /// <summary>
         /// Gets or Sets Persons Last Name
         /// </summary>
-        [Field(ColumnName = "lastname")]
+        [Column(ColumnName = "lastname")]
         public string LastName { get; set; }
 
         /// <summary>
         /// Gets or Sets Persons First Name
         /// </summary>
-        [Field(ColumnName = "firstname")]
+        [Column(ColumnName = "firstname")]
         public string FirstName { get; set; }
 
         /// <summary>
         /// Gets or Sets Persons Gender
         /// </summary>
-        [Field(ColumnName = "gender", ColumnType = typeof(int))]
+        [Column(ColumnName = "gender", ColumnType = typeof(int))]
         public Gender Gender { get; set; }
 
         
         /// <summary>Gets or sets the person's birth date.</summary>
-        [Field(ColumnName = "birthdate")]
+        [Column(ColumnName = "birthdate")]
         public DateTime BirthDate { get; set; }
 
         public string ToString()

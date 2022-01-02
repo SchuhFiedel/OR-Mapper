@@ -1,4 +1,5 @@
-﻿using SWE3_Zulli.OR.Models;
+﻿using SWE3_Zulli.OR.Framework;
+using SWE3_Zulli.OR.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,9 +8,9 @@ using System.Threading.Tasks;
 
 namespace SWE3_Zulli.OR.Demos
 {
-    public class WithNToM
+    public static class WithNToM
     {
-        public void Show()
+        public static void Show()
         {
             Console.WriteLine("Create and Load an Object with M:N");
             Console.WriteLine("*************************************");
@@ -18,10 +19,13 @@ namespace SWE3_Zulli.OR.Demos
             {
                 ID = 1,
                 Name = "TheFirstCourse",
-                Teacher = Framework.ORMapper.Get<Teacher>(1)
+                Teacher = ORMapper.Get<Teacher>(2)
             };
 
-            /* Hier fehlt der Großteil weil ich ned mitgekommen bin */
+            ORMapper.Save(c);
+            Course output = ORMapper.Get<Course>(02);
+            Console.WriteLine(output.Name);
+            //Console.WriteLine(ORMapper.Get<Teacher>(output.Teacher.ID).ToString());
 
 
         }
