@@ -1,4 +1,4 @@
-﻿using SWE3_Zulli.OR.Framework.Intefaces;
+﻿using SWE3_Zulli.OR.Framework.Interfaces;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -172,7 +172,7 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
         /// <summary>Fills a list for a foreign key.</summary>
         /// <param name="list">List.</param>
         /// <param name="obj">Object.</param>
-        /// <param name="localCache">Local cache.</param>
+        /// <param name="localCache">Local _cache.</param>
         /// <returns>List.</returns>
         public object Fill(object list, object obj, ICollection<object> localCache)
         {
@@ -198,7 +198,6 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
                 {
                     while (re.Read())
                     {
-                        
                         list.GetType().GetMethod("Add").Invoke(list, new object[] { ORMapper._InstantiateObject(Type.GenericTypeArguments[0], re.GetValue(re.GetOrdinal("id")) , localCache) });
                     }
                 }

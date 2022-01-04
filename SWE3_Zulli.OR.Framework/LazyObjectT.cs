@@ -1,4 +1,4 @@
-﻿using SWE3_Zulli.OR.Framework.Intefaces;
+﻿using SWE3_Zulli.OR.Framework.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;

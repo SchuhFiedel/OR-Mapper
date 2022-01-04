@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using SWE3_Zulli.OR.Framework.MetaModel;
 using Npgsql;
+using SWE3_Zulli.OR.Framework.Interfaces;
 
 namespace SWE3_Zulli.OR.Framework
 {
@@ -20,7 +21,9 @@ namespace SWE3_Zulli.OR.Framework
         private static Dictionary<Type, Table> _EntitiesDict = new();
 
         /// <summary>Caches objects to reduce load</summary>
-        private static ICollection<object> cache = new List<object>();
+        private static ICollection<object> _cache = new List<object>();
+
+        public static ICache Cache { get; set; }
 
         /// <summary>Gets or sets the database connection used by the framework.</summary>
         public static IDbConnection Connection {
@@ -53,11 +56,11 @@ namespace SWE3_Zulli.OR.Framework
         /// <returns>Object.</returns>
         public static Type Get<Type>(object primaryKey)
         {
-            /*if (cache.ContainsKey(primaryKey))
+            /*if (_cache.ContainsKey(primaryKey))
             {
-                return (Type)cache.Get(primaryKey);
+                return (Type)_cache.Get(primaryKey);
             }*/
-            return (Type)_InstantiateObject(typeof(Type), primaryKey, cache);
+            return (Type)_InstantiateObject(typeof(Type), primaryKey, _cache);
         }
 
         /// <summary>Saves an object.</summary>
@@ -66,7 +69,7 @@ namespace SWE3_Zulli.OR.Framework
         {
             //Connection.Open();
             Table entity = obj._GetTable();
-            Table ebase = obj.GetType().BaseType._GetTable();
+            //Table ebase = obj.GetType().BaseType._GetTable();
 
             IDbCommand cmd = Connection.CreateCommand();
             cmd.CommandText = ("INSERT INTO " + entity.TableName + " (");
@@ -129,6 +132,7 @@ namespace SWE3_Zulli.OR.Framework
             return _EntitiesDict[type];
         }
 
+        
         /// <summary>Searches the cached objects for an object and returns it.</summary>
         /// <param name="type">Type.</param>
         /// <param name="primarykey">Primary key.</param>
@@ -136,6 +140,10 @@ namespace SWE3_Zulli.OR.Framework
         /// <returns>Returns the cached object that matches the current reader or NULL if no such object has been found.</returns>
         internal static object _SearchCache(Type type, object primarykey, ICollection<object> localCache)
         {
+            if (Cache != null && Cache.ContainsObject(type, primarykey))
+            {
+                return Cache.GetObject(type, primarykey);
+            }
             if (localCache != null)
             {
                 foreach (object i in localCache)
@@ -153,7 +161,7 @@ namespace SWE3_Zulli.OR.Framework
         /// <summary>Creates an object from a database reader.</summary>
         /// <param name="type">Type.</param>
         /// <param name="reader">Reader.</param>
-        /// <param name="localCache">Local cache.</param>
+        /// <param name="localCache">Local _cache.</param>
         /// <returns>Object.</returns>
         internal static object _InstantiateObject(Type type, Dictionary<string, object>columnValuePairs, ICollection<object> localCache)
         {
@@ -184,10 +192,16 @@ namespace SWE3_Zulli.OR.Framework
             
         }
 
+        /// <summary>
+        /// saving dataReaders to DataReaderDictionary because else PGSQL buggs out -> too many open connections
+        /// </summary>
+        /// <param name="dataReader"></param>
+        /// <param name="entity"></param>
+        /// <returns></returns>
         private static Dictionary<string, object> DataReaderToDictionary(IDataReader dataReader, Table entity)
         {
             Dictionary<string, object> columnValuePairs = new();
-            Console.WriteLine(dataReader.ToString());
+            //Console.WriteLine(dataReader.ToString());
             if (dataReader.Read())
             {
                 
@@ -202,7 +216,7 @@ namespace SWE3_Zulli.OR.Framework
         /// <summary>Creates an instance by its primary keys.</summary>
         /// <param name="type">Type.</param>
         /// <param name="primaryKey">Primary key.</param>
-        /// <param name="localCache">Local cache.</param>
+        /// <param name="localCache">Local _cache.</param>
         /// <returns>Object.</returns>
         internal static object _InstantiateObject(Type type, object primaryKey, ICollection<object> localCache)
         {
@@ -236,9 +250,9 @@ namespace SWE3_Zulli.OR.Framework
         /// <param name="obj">Object.</param>
         public static void Delete(object obj)
         {
-            //Connection.Open();
+            
             Table ent = obj._GetTable();
-            Table bse = obj.GetType().BaseType._GetTable();
+            //Table bse = obj.GetType().BaseType._GetTable();
 
             /*if (bse.IsMaterial)
             {
@@ -246,24 +260,27 @@ namespace SWE3_Zulli.OR.Framework
                 _DeleteObject(obj, bse, true);
             }*/
             //else {
-                _DeleteObject(obj, ent, true, cache);
+                _DeleteObject(obj, ent, false, _cache);
             //}
             Connection.Close();
         }
 
-        internal static void _DeleteObject(object primaryKey, Table table, bool isBase, ICollection<object> cache)
+        internal static void _DeleteObject(object primaryKey, Table table, bool isBase, ICollection<object> _cache)
         {
-            IDbCommand cmd = Connection.CreateCommand();
-            cmd.CommandText = ("DELETE FROM " + table.TableName + " WHERE " + (isBase ? table.PrimaryKey.ColumnName : table.ChildKey) + " = :pk");
-            IDataParameter p = cmd.CreateParameter();
-            p.ParameterName = ":pk";
-            p.Value = table.PrimaryKey.GetValue(primaryKey);
-            cmd.Parameters.Add(p);
-            cmd.ExecuteNonQuery();
-            cmd.Dispose();
-
-            object delObj = _SearchCache(typeof(Type), primaryKey, cache);
-            cache.Remove(delObj);
+            using (IDbCommand cmd = Connection.CreateCommand())
+            {
+                cmd.CommandText = ("DELETE FROM " + table.TableName + " WHERE " + (isBase ? table.PrimaryKey.ColumnName : table.ChildKey) + " = @pk");
+                IDataParameter param = cmd.CreateParameter();
+                param.ParameterName = "@pk";
+                param.Value = table.PrimaryKey.GetValue(primaryKey);
+                cmd.Parameters.Add(param);
+                cmd.ExecuteNonQuery();
+            }
+            if(Cache != null)
+            {
+                object delObj = _SearchCache(typeof(Type), primaryKey, _cache);
+                _cache.Remove(delObj);
+            }
         }
     }
 }

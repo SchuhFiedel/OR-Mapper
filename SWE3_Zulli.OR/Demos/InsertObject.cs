@@ -9,7 +9,7 @@ namespace SWE3_Zulli.OR.Demos
     {
         public static void Show()
         {
-            Console.WriteLine("InsertObject");
+            Console.WriteLine("[01]InsertObject");
             Console.WriteLine("*************");
 
             Person max = new()
@@ -32,21 +32,11 @@ namespace SWE3_Zulli.OR.Demos
                 Salary = 40000
             };
 
-            Console.WriteLine(teacher.ToString());
+            //Console.WriteLine(teacher.ToString());
+            ORMapper.Save(teacher);
 
-            ORMapper.Save(teacher);            
-            Console.WriteLine("Inserted!");
-            Console.WriteLine("*************");
-
-            //Cache Test
             Person output = ORMapper.Get<Teacher>(01);
-            Console.Write(output.LastName);
-
-            ORMapper.Save(max);
-            output = ORMapper.Get<Person>(01);
-            Console.Write(output.LastName);
-            output = ORMapper.Get<Person>(02);
-            Console.Write(output.LastName);
+            Console.WriteLine($"{output.LastName} has been inserted");
         }
     }
 }

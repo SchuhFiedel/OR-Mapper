@@ -168,10 +168,10 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
         /// <returns>Field.</returns>
         public Column GetFieldForColumn(string columnName)
         {
-            columnName = columnName.ToUpper();
+            columnName = columnName.ToLower();
             foreach(Column internalField in InternalFields)
             {
-                if(internalField.ColumnName.ToUpper() == columnName) { return internalField; }
+                if(internalField.ColumnName.ToLower() == columnName) { return internalField; }
             }
             return null;
         }

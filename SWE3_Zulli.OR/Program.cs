@@ -2,6 +2,8 @@
 using SWE3_Zulli.OR.Framework;
 
 using SWE3_Zulli.OR.Demos;
+using SWE3_Zulli.OR.Framework.Cache;
+using System.Collections.Generic;
 
 namespace SWE3_Zulli.OR
 {
@@ -18,14 +20,32 @@ namespace SWE3_Zulli.OR
             //ORMapper.Connection = new SQLiteConnection("Data Source=test.sqlite;Version=3;");
             ORMapper.ConnectionString = "Host=localhost;Username=postgres;Password=postgres;Database=ORTest;Pooling=true";
 
-            
 
+            ORMapper.Cache = new TrackerCache();
             InsertObject.Show();
-
-            WithNToM.Show();
-            //ModifyObject.Show();
-            //WithForeignKey.Show();
+            ModifyObject.Show();
+            WithFK.Show();
             //WithForeignKeyKList.Show();
+            WithNToM.Show();
+            /*var cache = ORMapper.Cache.GetCacheList();
+            foreach (var x in cache)
+            {
+                Type t = x.GetType();
+                Console.WriteLine(t);
+                foreach (var y in x.Value)
+                {
+                    t = y.GetType();
+                    Console.WriteLine(t);
+                }
+
+            }*/
+            WithCache.Show();
+            
+            //WithQuery.Show();
+            //WIthLocking.Show();
+            
+            
+            
         }
     }
 }
