@@ -23,6 +23,9 @@ namespace SWE3_Zulli.OR.Framework
         /// <summary>Caches objects to reduce load</summary>
         private static ICollection<object> _cache = new List<object>();
 
+        /// <summary>Gets or sets the locking mechanism used by the framework.</summary>
+        public static ILocking Lock { get; set; }
+
         public static ICache Cache { get; set; }
 
         /// <summary>Gets or sets the database connection used by the framework.</summary>
@@ -71,43 +74,45 @@ namespace SWE3_Zulli.OR.Framework
             Table entity = obj._GetTable();
             //Table ebase = obj.GetType().BaseType._GetTable();
 
-            IDbCommand cmd = Connection.CreateCommand();
-            cmd.CommandText = ("INSERT INTO " + entity.TableName + " (");
-
-            string update = "ON CONFLICT (" + entity.PrimaryKey.ColumnName + ") DO UPDATE SET ";
-            string insert = "";
-
-            IDataParameter param;
-            bool first = true;
-            for (int i = 0; i < entity.InternalFields.Length; i++)
+            using (IDbCommand cmd = Connection.CreateCommand())
             {
-                if (i > 0) { cmd.CommandText += ", "; insert += ", "; }
-                cmd.CommandText += entity.InternalFields[i].ColumnName;
+                cmd.CommandText = ("INSERT INTO " + entity.TableName + " (");
 
-                insert += ("@v" + i.ToString());
+                string update = "ON CONFLICT (" + entity.PrimaryKey.ColumnName + ") DO UPDATE SET ";
+                string insert = "";
 
-                param = cmd.CreateParameter();
-                param.ParameterName = ("@v" + i.ToString());
-                param.Value = entity.InternalFields[i].ToColumnType(entity.InternalFields[i].GetValue(obj));
-                cmd.Parameters.Add(param);
-
-                if (!entity.InternalFields[i].IsPrimaryKey)
+                IDataParameter param;
+                bool first = true;
+                for (int i = 0; i < entity.InternalFields.Length; i++)
                 {
-                    if (first) { first = false; } else { update += ", "; }
-                    update += (entity.InternalFields[i].ColumnName + " = " + ("@x" + i.ToString()));
+                    if (i > 0) { cmd.CommandText += ", "; insert += ", "; }
+                    cmd.CommandText += entity.InternalFields[i].ColumnName;
+
+                    insert += ("@v" + i.ToString());
 
                     param = cmd.CreateParameter();
-                    param.ParameterName = ("@x" + i.ToString());
+                    param.ParameterName = ("@v" + i.ToString());
                     param.Value = entity.InternalFields[i].ToColumnType(entity.InternalFields[i].GetValue(obj));
-
                     cmd.Parameters.Add(param);
+
+                    if (!entity.InternalFields[i].IsPrimaryKey)
+                    {
+                        if (first) { first = false; } else { update += ", "; }
+                        update += (entity.InternalFields[i].ColumnName + " = " + ("@x" + i.ToString()));
+
+                        param = cmd.CreateParameter();
+                        param.ParameterName = ("@x" + i.ToString());
+                        param.Value = entity.InternalFields[i].ToColumnType(entity.InternalFields[i].GetValue(obj));
+
+                        cmd.Parameters.Add(param);
+                    }
                 }
+                cmd.CommandText += (") VALUES (" + insert + ") " + update);
+
+                cmd.ExecuteNonQuery();
+                cmd.Dispose();
             }
-            cmd.CommandText += (") VALUES (" + insert + ") " + update);
-
-            cmd.ExecuteNonQuery();
-            cmd.Dispose();
-
+           
             //für n:m 19.10.2021
             foreach (Column field in entity.ExternalFields)
             {
@@ -225,20 +230,23 @@ namespace SWE3_Zulli.OR.Framework
 
             if (returnValue == null)
             {
-                IDbCommand cmd = Connection.CreateCommand();
-                Table table = type._GetTable();
-                cmd.CommandText = table.GetSQL() + " WHERE " + table.PrimaryKey.ColumnName + " = @pk";
+                using (IDbCommand cmd = Connection.CreateCommand())
+                {
+                    Table table = type._GetTable();
+                    cmd.CommandText = table.GetSQL() + " WHERE " + table.PrimaryKey.ColumnName + " = @pk";
 
-                IDataParameter parameter = cmd.CreateParameter();
-                parameter.ParameterName = ("@pk");
-                parameter.Value = primaryKey;
-                cmd.Parameters.Add(parameter);
+                    IDataParameter parameter = cmd.CreateParameter();
+                    parameter.ParameterName = ("@pk");
+                    parameter.Value = primaryKey;
+                    cmd.Parameters.Add(parameter);
 
-                IDataReader re = cmd.ExecuteReader();
-                Dictionary<string, object> columnValuePairs = DataReaderToDictionary(re, table);
-                re.Close();
-                cmd.Dispose();
-                returnValue = _InstantiateObject(type, columnValuePairs, localCache);
+                    IDataReader re = cmd.ExecuteReader();
+                    Dictionary<string, object> columnValuePairs = DataReaderToDictionary(re, table);
+                    re.Close();
+                    cmd.Dispose();
+                    returnValue = _InstantiateObject(type, columnValuePairs, localCache);
+                }
+                
             }
             Connection.Close();
 
@@ -281,6 +289,30 @@ namespace SWE3_Zulli.OR.Framework
                 object delObj = _SearchCache(typeof(Type), primaryKey, _cache);
                 _cache.Remove(delObj);
             }
+        }
+
+        /// <summary>Locks an object.</summary>
+        /// <param name="obj">Object.</param>
+        /// <exception cref="LockingException">Thrown when the object could not be locked.</exception>
+        /// <exception cref="ObjectLockedException">Thrown when the object is already locked by another instance.</exception>
+        public static void LockObject(object obj)
+        {
+            if (Lock != null) { Lock.Lock(obj); }
+        }
+
+        /// <summary>Releases a lock on an object.</summary>
+        /// <param name="obj">Object.</param>
+        public static void Unlock(object obj)
+        {
+            if (Lock != null) { Lock.Unlock(obj); }
+        }
+
+        /// <summary>
+        /// Delete All Locks / Release All Locks
+        /// </summary>
+        public static void Purge()
+        {
+            if(Lock != null) { Lock.Purge(); };
         }
     }
 }

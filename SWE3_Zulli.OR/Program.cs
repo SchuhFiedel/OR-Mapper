@@ -1,9 +1,7 @@
-﻿using System;
+﻿
 using SWE3_Zulli.OR.Framework;
-
 using SWE3_Zulli.OR.Demos;
 using SWE3_Zulli.OR.Framework.Cache;
-using System.Collections.Generic;
 
 namespace SWE3_Zulli.OR
 {
@@ -40,9 +38,8 @@ namespace SWE3_Zulli.OR
 
             }*/
             WithCache.Show();
-            
             //WithQuery.Show();
-            //WIthLocking.Show();
+            WithLocking.Show();
             
             
             

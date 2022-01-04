@@ -203,7 +203,6 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
                 }
             }
             return list;
-            
         }
 
         //für n:m 19.10.2021
@@ -218,90 +217,99 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
 
             if (IsManyToMany)
             {
-                IDbCommand cmd = ORMapper.Connection.CreateCommand();
-                cmd.CommandText = ("DELETE FROM " + TargetTableName + " WHERE " + ColumnName + " = @pk");
-                IDataParameter p = cmd.CreateParameter();
-
-                p.ParameterName = "@pk";
-                p.Value = pk;
-
-                cmd.Parameters.Add(p);
-
-                cmd.ExecuteNonQuery();
-                cmd.Dispose();
-
-                if(GetValue(obj) != null)
+                using (IDbCommand cmd = ORMapper.Connection.CreateCommand())
                 {
-                    foreach ( object i in (IEnumerable)GetValue(obj))
+                    cmd.CommandText = ("DELETE FROM " + TargetTableName + " WHERE " + ColumnName + " = @pk");
+                    IDataParameter p = cmd.CreateParameter();
+
+                    p.ParameterName = "@pk";
+                    p.Value = pk;
+
+                    cmd.Parameters.Add(p);
+
+                    cmd.ExecuteNonQuery();
+                    cmd.Dispose();
+
+                    if (GetValue(obj) != null)
                     {
-                        cmd = ORMapper.Connection.CreateCommand();
-                        cmd.CommandText = "INSERT INTO " + TargetTableName + 
-                            " (" + ColumnName + " , " + TargetColumnName +
-                            ") VALUES ( @pk, @fk)";
-
-                        p.ParameterName = "@pk";
-                        p.Value = pk;
-
-                        cmd.Parameters.Add(p);
-
-                        p.ParameterName = "@fk";
-                        p.Value = innerEntity.PrimaryKey.ToColumnType(innerEntity.PrimaryKey.GetValue(i));
-
-                        cmd.Parameters.Add(p);
-
-                        cmd.ExecuteNonQuery();
-                        cmd.Dispose();
-                    }
-                }
-                else
-                {
-                    Column remoteField = innerEntity.GetFieldForColumn(ColumnName);
-
-                    if (remoteField.IsNullable)
-                    {
-                        try
+                        foreach (object i in (IEnumerable)GetValue(obj))
                         {
-                            cmd = ORMapper.Connection.CreateCommand();
-                            cmd.CommandText = ("UPDATE " + innerEntity.TableName + " SET " + ColumnName + " = NULL WHERE " + ColumnName + " = @fk");
+                            using (IDbCommand command = ORMapper.Connection.CreateCommand())
+                            {
+                                command.CommandText = "INSERT INTO " + TargetTableName +
+                                " (" + ColumnName + " , " + TargetColumnName +
+                                ") VALUES ( @pk, @fk)";
 
-                            p = cmd.CreateParameter();
+                                p.ParameterName = "@pk";
+                                p.Value = pk;
 
-                            p.ParameterName = "@fk";
-                            p.Value = pk;
+                                command.Parameters.Add(p);
 
-                            cmd.Parameters.Add(p);
+                                p.ParameterName = "@fk";
+                                p.Value = innerEntity.PrimaryKey.ToColumnType(innerEntity.PrimaryKey.GetValue(i));
 
-                            cmd.ExecuteNonQuery();
-                            cmd.Dispose();
+                                command.Parameters.Add(p);
+
+                                command.ExecuteNonQuery();
+                                command.Dispose();
+                            }
+                            
                         }
-                        catch (Exception) { }
                     }
-                    
-                    if(GetValue(obj) != null)
+                    else
                     {
-                        foreach(object i in (IEnumerable)GetValue(obj))
+                        Column remoteField = innerEntity.GetFieldForColumn(ColumnName);
+
+                        if (remoteField.IsNullable)
                         {
-                            remoteField.SetValue(i, obj);
+                            try
+                            {
+                                using (IDbCommand command = ORMapper.Connection.CreateCommand())
+                                {
+                                    command.CommandText = ("UPDATE " + innerEntity.TableName + " SET " + ColumnName + " = NULL WHERE " + ColumnName + " = @fk");
 
-                            cmd = ORMapper.Connection.CreateCommand();
-                            cmd.CommandText = ("Update " + innerEntity.TableName + "Set " + ColumnName + " = @fk WHERE " + innerEntity.PrimaryKey.ColumnName + " = @pk");
+                                    p = command.CreateParameter();
 
-                            p = cmd.CreateParameter();
+                                    p.ParameterName = "@fk";
+                                    p.Value = pk;
 
-                            p.ParameterName = "@fk";
-                            p.Value = pk;
+                                    command.Parameters.Add(p);
 
-                            cmd.Parameters.Add(p);
+                                    command.ExecuteNonQuery();
+                                    command.Dispose();
+                                }
+                            }
+                            catch (Exception) { }
+                        }
 
-                            p = cmd.CreateParameter();
+                        if (GetValue(obj) != null)
+                        {
+                            foreach (object i in (IEnumerable)GetValue(obj))
+                            {
+                                remoteField.SetValue(i, obj);
 
-                            p.ParameterName = "@pk";
-                            p.Value = innerEntity.PrimaryKey.ToColumnType(innerEntity.PrimaryKey.GetValue(i));
+                                using (IDbCommand command = ORMapper.Connection.CreateCommand())
+                                {
+                                    command.CommandText = ("Update " + innerEntity.TableName + "Set " + ColumnName + " = @fk WHERE " + innerEntity.PrimaryKey.ColumnName + " = @pk");
 
-                            cmd.Parameters.Add(p);
+                                    p = command.CreateParameter();
 
-                            cmd.ExecuteNonQuery();
-                            cmd.Dispose();
+                                    p.ParameterName = "@fk";
+                                    p.Value = pk;
+
+                                    command.Parameters.Add(p);
+
+                                    p = command.CreateParameter();
+
+                                    p.ParameterName = "@pk";
+                                    p.Value = innerEntity.PrimaryKey.ToColumnType(innerEntity.PrimaryKey.GetValue(i));
+
+                                    command.Parameters.Add(p);
+
+                                    cmd.ExecuteNonQuery();
+                                    cmd.Dispose();
+                                }
+                            }
                         }
                     }
                 }
