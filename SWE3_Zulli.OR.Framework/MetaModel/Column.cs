@@ -158,7 +158,10 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
         /// <returns>Field value.</returns>
         public object GetValue(object obj)
         {
-            return Member.GetValue(obj);
+            object rval = Member.GetValue(obj);
+
+            return rval;
+            throw new NotSupportedException("Member type not supported.");
         }
 
         /// <summary>Sets the field value.</summary>

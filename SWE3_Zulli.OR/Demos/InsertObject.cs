@@ -11,15 +11,6 @@ namespace SWE3_Zulli.OR.Demos
         {
             Console.WriteLine("[01]InsertObject");
             Console.WriteLine("*************");
-            /*
-            Person max = new()
-            {
-                ID = 01,
-                FirstName = "Max",
-                LastName = "Zulli",
-                Gender = Gender.MALE,
-                BirthDate = DateTime.Parse("13-12-2000")
-            };*/
 
             Teacher teacher = new Teacher()
             {
@@ -32,7 +23,6 @@ namespace SWE3_Zulli.OR.Demos
                 Salary = 40000
             };
 
-            //Console.WriteLine(teacher.ToString());
             ORMapper.Save(teacher);
 
             Person output = ORMapper.Get<Teacher>(01);

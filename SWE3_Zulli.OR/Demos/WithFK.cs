@@ -15,6 +15,18 @@ namespace SWE3_Zulli.OR.Demos
             Console.WriteLine("\n[03]Create and Load an Object with Foreign Key (1:n)");
             Console.WriteLine("*************************************");
 
+            Student s = new()
+            {
+                ID = 2,
+                LastName = "fifif",
+                FirstName = "uuuuuuu",
+                BirthDate = DateTime.Now,
+                Gender = Gender.OTHER,
+                Grade = 2
+            };
+
+            ORMapper.Save(s);
+
             Course c = new()
             {
                 ID = 0,
@@ -22,7 +34,7 @@ namespace SWE3_Zulli.OR.Demos
                 Teacher = ORMapper.Get<Teacher>(01),
                 Students = new List<Student>()
                 {
-                    ORMapper.Get<Student>(3)
+                    ORMapper.Get<Student>(2)
                 }
             };
 

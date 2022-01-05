@@ -16,7 +16,7 @@ namespace SWE3_Zulli.OR.Demos
             Console.WriteLine("*************************************");
 
             Course c = new Course();
-            c.ID = 0;
+            c.ID = 1;
             c.Name = "ugugud";
             Teacher tmp = (Teacher)ORMapper.Get<Teacher>(1);
             c.Teacher = tmp;
@@ -51,12 +51,12 @@ namespace SWE3_Zulli.OR.Demos
 
             ORMapper.Save(c);
 
-            c = ORMapper.Get<Course>(0);
+            c = ORMapper.Get<Course>(1);
 
             Console.WriteLine("Students in " + c.Name + ":");
             foreach (Student i in c.Students)
             {
-                Console.WriteLine(i.FirstName + " " + i.FirstName);
+                Console.WriteLine(i.FirstName + " " + i.LastName);
             }
             Console.WriteLine("\n");
         }
