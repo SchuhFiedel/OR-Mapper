@@ -41,7 +41,9 @@ namespace SWE3_Zulli.OR.Framework.Cache
                     object m = i.GetValue(obj);
                     if (m != null) { rval += m._GetTable().PrimaryKey.GetValue(m).ToString(); }
                 }
-                else { rval += (i.ColumnName + "=" + i.GetValue(obj).ToString() + ";"); }
+                else { 
+                    rval += (i.ColumnName + "=" + i.GetValue(obj).ToString() + ";"); 
+                }
             }
 
             foreach (Column i in obj._GetTable().ExternalFields)

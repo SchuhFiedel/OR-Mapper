@@ -70,6 +70,8 @@ namespace SWE3_Zulli.OR.Framework
         /// <param name="obj">Object.</param>
         public static void Save(object obj)
         {
+            if (Cache != null) { if (!Cache.ObjectHasChanged(obj)) return; }
+
             //Connection.Open();
             Table entity = obj._GetTable();
             //Table ebase = obj.GetType().BaseType._GetTable();
@@ -118,7 +120,8 @@ namespace SWE3_Zulli.OR.Framework
             {
                 field.UpdateReferences(obj);
             }
-            ORMapper.Connection.Close();
+            Connection.Close();
+            if (Cache != null) { Cache.PutObject(obj); }
         }
 
         /// <summary>Gets an entity descriptor for an object.</summary>
@@ -149,7 +152,7 @@ namespace SWE3_Zulli.OR.Framework
             {
                 return Cache.GetObject(type, primarykey);
             }
-            if (localCache != null)
+            else if (localCache != null)
             {
                 foreach (object i in localCache)
                 {
@@ -173,13 +176,15 @@ namespace SWE3_Zulli.OR.Framework
             //Connection;
             Table ent = type._GetTable();
             object returnValue = _SearchCache(type, ent.PrimaryKey.ToFieldType(columnValuePairs[ent.PrimaryKey.ColumnName], localCache),localCache);
-
+            bool foundincache = true;
             if (returnValue == null)
             {
                 if (localCache == null) 
-                { 
+                {
+                    
                     localCache = new List<object>(); 
                 }
+                foundincache = false;
                 localCache.Add(returnValue = Activator.CreateInstance(type));
             }
 
@@ -188,10 +193,15 @@ namespace SWE3_Zulli.OR.Framework
                 internalField.SetValue(returnValue, internalField.ToFieldType(columnValuePairs[internalField.ColumnName],localCache));
             }
 
-            foreach (Column externalField in ent.ExternalFields)
+            if (foundincache == true)
             {
-                externalField.SetValue(returnValue, externalField.Fill(Activator.CreateInstance(externalField.Type), returnValue, localCache));
+                foreach (Column externalField in ent.ExternalFields)
+                {
+                    externalField.SetValue(returnValue, externalField.Fill(Activator.CreateInstance(externalField.Type), returnValue, localCache));
+                }
             }
+            Cache.PutObject(returnValue);
+
             Connection.Close();
             return returnValue;
             
@@ -284,9 +294,17 @@ namespace SWE3_Zulli.OR.Framework
                 cmd.Parameters.Add(param);
                 cmd.ExecuteNonQuery();
             }
-            if(Cache != null)
+            object delObj = null;
+            if (Cache != null || _cache != null)
             {
-                object delObj = _SearchCache(typeof(Type), primaryKey, _cache);
+                delObj = _SearchCache(typeof(Type), primaryKey, _cache);
+            }
+            if(Cache != null && delObj != null)
+            {
+                Cache.RemoveObject(delObj);
+            }
+            if(_cache != null && delObj != null)
+            {
                 _cache.Remove(delObj);
             }
         }
