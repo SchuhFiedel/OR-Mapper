@@ -17,15 +17,19 @@ namespace SWE3_Zulli.OR.Demos
 
             Course c = new()
             {
-                ID = 1,
+                ID = 0,
                 Name = "TheFirstCourse",
-                Teacher = ORMapper.Get<Teacher>(02)
+                Teacher = ORMapper.Get<Teacher>(01),
+                Students = new List<Student>()
+                {
+                    ORMapper.Get<Student>(3)
+                }
             };
 
             ORMapper.Save(c);
-            Course output = ORMapper.Get<Course>(02);
-            Console.WriteLine(output.Name);
-            Console.WriteLine(ORMapper.Get<Teacher>(output.Teacher.ID).ToString());
+            Course output = ORMapper.Get<Course>(0);
+            Console.WriteLine(output.Name + " " + output.Teacher.ID);
+            Console.WriteLine(ORMapper.Get<Teacher>(output.Teacher.ID).LastName);
         }
     }
 }

@@ -15,7 +15,50 @@ namespace SWE3_Zulli.OR.Demos
             Console.WriteLine("\n[04]Create and Load an Object with M:N");
             Console.WriteLine("*************************************");
 
+            Course c = new Course();
+            c.ID = 0;
+            c.Name = "ugugud";
+            Teacher tmp = (Teacher)ORMapper.Get<Teacher>(1);
+            c.Teacher = tmp;
 
+            
+
+            Student s = new Student()
+            {
+                ID = 3,
+                FirstName = "Uaua",
+                LastName = "Ekeye",
+                Gender = Gender.FEMALE,
+                BirthDate = DateTime.Now,
+                Grade = 2,
+            };
+            
+            ORMapper.Save(s);
+            c.Students.Add(s);
+
+            s = new Student()
+            {
+                ID = 4,
+                FirstName = "Oo00k",
+                LastName = "asdadd",
+                Grade = 1,
+                Gender = Gender.OTHER,
+                BirthDate = DateTime.UtcNow,
+            };
+
+            ORMapper.Save(s);
+            c.Students.Add(s);
+
+            ORMapper.Save(c);
+
+            c = ORMapper.Get<Course>(0);
+
+            Console.WriteLine("Students in " + c.Name + ":");
+            foreach (Student i in c.Students)
+            {
+                Console.WriteLine(i.FirstName + " " + i.FirstName);
+            }
+            Console.WriteLine("\n");
         }
         
     }

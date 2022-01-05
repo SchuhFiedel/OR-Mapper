@@ -1,4 +1,5 @@
-﻿using SWE3_Zulli.OR.Framework.Interfaces;
+﻿
+using SWE3_Zulli.OR.Framework.Interfaces;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -12,9 +13,9 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
     /// <summary>This class holds field metadata.</summary>
     internal class Column
     {
-        bool NamesToLowerFlag = true;
-
-        /// <summary>Creates a new instance of this class.</summary>
+        /// <summary>
+        /// Creates a new instance of this class.
+        /// </summary>
         /// <param name="entity">Parent entity.</param>
         public Column(Table entity)
         {
@@ -221,31 +222,89 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
                 {
                     cmd.CommandText = ("DELETE FROM " + TargetTableName + " WHERE " + ColumnName + " = @pk");
                     IDataParameter p = cmd.CreateParameter();
-
                     p.ParameterName = "@pk";
                     p.Value = pk;
 
                     cmd.Parameters.Add(p);
-
                     cmd.ExecuteNonQuery();
                     cmd.Dispose();
+                }
+
+                if (GetValue(obj) != null)
+                {
+                    foreach (object i in (IEnumerable)GetValue(obj))
+                    {
+                        using (IDbCommand command = ORMapper.Connection.CreateCommand())
+                        {
+                            object primary = (object)pk;
+                            command.CommandText = "INSERT INTO " + TargetTableName +
+                            " (" + ColumnName + " , " + TargetColumnName +
+                            ") VALUES ( @pk, @fk)";
+
+                            IDataParameter param = command.CreateParameter();
+                            param.ParameterName = "@pk";
+                            param.Value = primary;
+
+                            command.Parameters.Add(param);
+
+                            IDataParameter param2 = command.CreateParameter();
+                            param2.ParameterName = "@fk";
+                            object secondary = (object)innerEntity.PrimaryKey.ToColumnType(innerEntity.PrimaryKey.GetValue(i));
+                            param2.Value = secondary;
+                            command.Parameters.Add(param2);
+
+                            command.ExecuteNonQuery();
+                            command.Dispose();
+                        }
+
+                    }
+                }
+                else
+                {
+                    Column remoteField = innerEntity.GetFieldForColumn(ColumnName);
+
+                    if (remoteField.IsNullable)
+                    {
+                        try
+                        {
+                            using (IDbCommand command = ORMapper.Connection.CreateCommand())
+                            {
+                                command.CommandText = ("UPDATE " + innerEntity.TableName + " SET " + ColumnName + " = NULL WHERE " + ColumnName + " = @fk");
+
+                                IDataParameter p = command.CreateParameter();
+
+                                p.ParameterName = "@fk";
+                                p.Value = pk;
+
+                                command.Parameters.Add(p);
+
+                                command.ExecuteNonQuery();
+                                command.Dispose();
+                            }
+                        }
+                        catch (Exception) { }
+                    }
 
                     if (GetValue(obj) != null)
                     {
                         foreach (object i in (IEnumerable)GetValue(obj))
                         {
+                            remoteField.SetValue(i, obj);
+
                             using (IDbCommand command = ORMapper.Connection.CreateCommand())
                             {
-                                command.CommandText = "INSERT INTO " + TargetTableName +
-                                " (" + ColumnName + " , " + TargetColumnName +
-                                ") VALUES ( @pk, @fk)";
+                                command.CommandText = ("Update " + innerEntity.TableName + "Set " + ColumnName + " = @fk WHERE " + innerEntity.PrimaryKey.ColumnName + " = @pk");
 
-                                p.ParameterName = "@pk";
+                                IDataParameter p = command.CreateParameter();
+
+                                p.ParameterName = "@fk";
                                 p.Value = pk;
 
                                 command.Parameters.Add(p);
 
-                                p.ParameterName = "@fk";
+                                p = command.CreateParameter();
+
+                                p.ParameterName = "@pk";
                                 p.Value = innerEntity.PrimaryKey.ToColumnType(innerEntity.PrimaryKey.GetValue(i));
 
                                 command.Parameters.Add(p);
@@ -253,66 +312,24 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
                                 command.ExecuteNonQuery();
                                 command.Dispose();
                             }
-                            
-                        }
-                    }
-                    else
-                    {
-                        Column remoteField = innerEntity.GetFieldForColumn(ColumnName);
-
-                        if (remoteField.IsNullable)
-                        {
-                            try
-                            {
-                                using (IDbCommand command = ORMapper.Connection.CreateCommand())
-                                {
-                                    command.CommandText = ("UPDATE " + innerEntity.TableName + " SET " + ColumnName + " = NULL WHERE " + ColumnName + " = @fk");
-
-                                    p = command.CreateParameter();
-
-                                    p.ParameterName = "@fk";
-                                    p.Value = pk;
-
-                                    command.Parameters.Add(p);
-
-                                    command.ExecuteNonQuery();
-                                    command.Dispose();
-                                }
-                            }
-                            catch (Exception) { }
-                        }
-
-                        if (GetValue(obj) != null)
-                        {
-                            foreach (object i in (IEnumerable)GetValue(obj))
-                            {
-                                remoteField.SetValue(i, obj);
-
-                                using (IDbCommand command = ORMapper.Connection.CreateCommand())
-                                {
-                                    command.CommandText = ("Update " + innerEntity.TableName + "Set " + ColumnName + " = @fk WHERE " + innerEntity.PrimaryKey.ColumnName + " = @pk");
-
-                                    p = command.CreateParameter();
-
-                                    p.ParameterName = "@fk";
-                                    p.Value = pk;
-
-                                    command.Parameters.Add(p);
-
-                                    p = command.CreateParameter();
-
-                                    p.ParameterName = "@pk";
-                                    p.Value = innerEntity.PrimaryKey.ToColumnType(innerEntity.PrimaryKey.GetValue(i));
-
-                                    command.Parameters.Add(p);
-
-                                    cmd.ExecuteNonQuery();
-                                    cmd.Dispose();
-                                }
-                            }
                         }
                     }
                 }
+            }
+        }
+
+        /// <summary>Gets the foreign key SQL.</summary>
+        internal string _FkSql
+        {
+            get
+            {
+                if (IsManyToMany)
+                {
+                    return Type.GenericTypeArguments[0]._GetTable().GetSQL() +
+                           " WHERE ID IN (SELECT " + TargetColumnName + " FROM " + TargetTableName + " WHERE " + ColumnName + " = :fk)";
+                }
+
+                return Type.GenericTypeArguments[0]._GetTable().GetSQL() + " WHERE " + ColumnName + " = :fk";
             }
         }
     }

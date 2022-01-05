@@ -9,7 +9,7 @@ namespace SWE3_Zulli.OR.Models
     public class Course
     {
         /// <summary>Gets or sets the course ID.</summary>
-        [PrimaryKey]
+        [PrimaryKey(ColumnName = "id")]
         public int ID { get; internal set; }
 
         /// <summary>Gets or sets the course name.</summary>
@@ -19,9 +19,9 @@ namespace SWE3_Zulli.OR.Models
         /// <summary>Gets or sets the course teacher.</summary>
         [ForeignKey(ColumnName = "fk_teacher")]
         public Teacher Teacher { get; internal set; }
-        
-        /*/// <summary>Gets or sets the courses students..</summary>
-        [ForeignKey(ColumnName = "fk_student")]
-        public List<Student> Students { get; internal set; }*/
+
+        /// <summary>Gets or sets the courses students..</summary>
+        [ForeignKey(ColumnName = "fk_course", TargetTableName = "student_course", TargetColumnName = "fk_student")]
+        public List<Student> Students { get; internal set; } = new List<Student>();
     }
 }

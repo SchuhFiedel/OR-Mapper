@@ -154,11 +154,6 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
                 if(i > 0) { returnValue += ", "; }
                 returnValue += prefix.Trim() + InternalFields[i].ColumnName;
             }
-            for (int i = 0; i < ExternalFields.Length; i++)
-            {
-                returnValue += ", ";
-                returnValue += prefix.Trim() + ExternalFields[i].ColumnName;
-            }
             returnValue += (" FROM " + TableName);
             return returnValue;
         }

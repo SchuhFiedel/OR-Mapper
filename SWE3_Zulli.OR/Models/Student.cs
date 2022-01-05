@@ -12,5 +12,9 @@ namespace SWE3_Zulli.OR.Models
         /// </summary>
         [Column(ColumnName = "grade")]
         public int Grade { get; set; }
+
+        /*[ForeignKey(ColumnName = "fk_class")]
+        public Course Course { get; set; }
+        */
     }
 }

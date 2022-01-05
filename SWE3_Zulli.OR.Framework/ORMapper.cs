@@ -210,7 +210,7 @@ namespace SWE3_Zulli.OR.Framework
             if (dataReader.Read())
             {
                 
-                foreach (Column modelField in entity.Fields)
+                foreach (Column modelField in entity.InternalFields)
                 {
                     columnValuePairs.Add(modelField.ColumnName, dataReader.GetValue(dataReader.GetOrdinal(modelField.ColumnName)));
                 }
