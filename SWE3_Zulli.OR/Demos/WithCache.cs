@@ -11,7 +11,7 @@ namespace SWE3_Zulli.OR.Demos
         /// <summary>Implements the show case.</summary>
         public static void Show()
         {
-            Console.WriteLine("\n[05]Cache demonstration");
+            Console.WriteLine("\n[06]Cache demonstration");
             Console.WriteLine("-----------------------");
 
             Console.WriteLine("\rWithout cache:");

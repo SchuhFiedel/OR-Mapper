@@ -43,6 +43,10 @@ namespace SWE3_Zulli.OR.Framework.Interfaces
         /// <returns>Returns TRUE if the object has changed or might have changed, returns FALSE if the object is unchanged.</returns>
         bool ObjectHasChanged(object obj);
 
+        /// <summary>
+        /// Returns the Cache list
+        /// </summary>
+        /// <returns></returns>
         public Dictionary<Type, Dictionary<object, object>> GetCacheList();
     }
 }

@@ -7,11 +7,9 @@ namespace SWE3_Zulli.OR
 {
     class Program
     {
-        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-        // entry point                                                                                                      //
-        //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-        /// <summary>This is the program main entry point.</summary>
+        /// <summary>
+        /// This is the program main entry point.
+        /// </summary>
         /// <param name="args">Command line arguments.</param>
         static void Main(string[] args)
         {
@@ -20,17 +18,24 @@ namespace SWE3_Zulli.OR
 
 
             ORMapper.Cache = new TrackerCache();
+
             InsertObject.Show();
+
             ModifyObject.Show();
+
             WithFK.Show();
+
+            WithForeignKeyTWO.Show();
+
+            //WithNToM includes List
             WithNToM.Show();
-            //WithForeignKeyKList.Show();
-            //WithCache.Show();
+
+            WithCache.Show();
+
             //WithQuery.Show();
-            //WithLocking.Show();
-            
-            
-            
+
+            WithLocking.Show();
+
         }
     }
 }

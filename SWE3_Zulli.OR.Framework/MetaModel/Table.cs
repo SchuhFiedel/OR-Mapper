@@ -13,7 +13,9 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
     {
         bool NamesToLowerFlag = true;
 
-        /// <summary>Creates a new instance of this class.</summary>
+        /// <summary>
+        /// Creates a new instance of this class.
+        /// </summary>
         /// <param name="type">Variable/Table Type.</param>
         public Table(Type type)
         {
@@ -138,7 +140,9 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
             get; private set;
         }
 
-        /// <summary>Gets the entity SQL.</summary>
+        /// <summary>
+        /// Gets the Sql querry for a Table.
+        /// </summary>
         /// <param name="prefix">Prefix.</param>
         /// <returns>SQL string.</returns>
         public string GetSQL(string prefix = null)
@@ -158,7 +162,9 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
             return returnValue;
         }
 
-        /// <summary>Gets a field by its column name.</summary>
+        /// <summary>
+        /// Gets a field by its column name.
+        /// </summary>
         /// <param name="columnName">Column name.</param>
         /// <returns>Field.</returns>
         public Column GetFieldForColumn(string columnName)

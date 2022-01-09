@@ -22,7 +22,7 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
             Table = entity;
         }
 
-        /// <summary>Gets the parent entity.</summary>
+        /// <summary>Gets the parent entity / table.</summary>
         public Table Table
         {
             get; private set;
@@ -209,7 +209,10 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
             return list;
         }
 
-        //für n:m 19.10.2021
+        /// <summary>
+        /// Updates the References of n:m relationships
+        /// </summary>
+        /// <param name="obj"></param>
         public void UpdateReferences(object obj)
         {
             if (!IsExternal) return;
@@ -217,8 +220,10 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
             Type innerType = Type.GetGenericArguments()[0];
             Table innerEntity = innerType._GetTable();
 
+            //get Primary Key of this object
             object pk = Table.PrimaryKey.ToColumnType(Table.PrimaryKey.GetValue(obj));
 
+            //if n:m
             if (IsManyToMany)
             {
                 using (IDbCommand cmd = ORMapper.Connection.CreateCommand())
@@ -233,13 +238,15 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
                     cmd.Dispose();
                 }
 
+                //if the object value is not null insert it into the TargetTable -
+                //if it's null and nullable, update the entity with null value and then, if possible with the real value
                 if (GetValue(obj) != null)
                 {
                     foreach (object i in (IEnumerable)GetValue(obj))
                     {
                         using (IDbCommand command = ORMapper.Connection.CreateCommand())
                         {
-                            object primary = (object)pk;
+                            object primary = pk;
                             command.CommandText = "INSERT INTO " + TargetTableName +
                             " (" + ColumnName + " , " + TargetColumnName +
                             ") VALUES ( @pk, @fk)";
@@ -259,7 +266,6 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
                             command.ExecuteNonQuery();
                             command.Dispose();
                         }
-
                     }
                 }
                 else
@@ -273,7 +279,6 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
                             using (IDbCommand command = ORMapper.Connection.CreateCommand())
                             {
                                 command.CommandText = ("UPDATE " + innerEntity.TableName + " SET " + ColumnName + " = NULL WHERE " + ColumnName + " = @fk");
-
                                 IDataParameter p = command.CreateParameter();
 
                                 p.ParameterName = "@fk";
@@ -321,7 +326,10 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
             }
         }
 
-        /// <summary>Gets the foreign key SQL.</summary>
+            /// <summary>
+            /// Gets the foreign key SQL. 
+            /// NOT USED because not needed
+            /// </summary>
         internal string _FkSql
         {
             get

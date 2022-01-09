@@ -12,16 +12,14 @@ namespace SWE3_Zulli.OR.Demos
     {
         public static void Show()
         {
-            Console.WriteLine("\n[04]Create and Load an Object with M:N");
+            Console.WriteLine("\n[05]Create and Load an Object with M:N");
             Console.WriteLine("*************************************");
 
             Course c = new Course();
             c.ID = 1;
-            c.Name = "ugugud";
+            c.Name = "TheSecondCourse";
             Teacher tmp = (Teacher)ORMapper.Get<Teacher>(1);
             c.Teacher = tmp;
-
-            
 
             Student s = new Student()
             {
@@ -53,6 +51,7 @@ namespace SWE3_Zulli.OR.Demos
 
             c = ORMapper.Get<Course>(1);
 
+            //Print List of Students
             Console.WriteLine("Students in " + c.Name + ":");
             foreach (Student i in c.Students)
             {

@@ -8,6 +8,9 @@ using System.Threading.Tasks;
 
 namespace SWE3_Zulli.OR.Framework.Repositories
 {
+    /// <summary>
+    /// Database repository for Automatic Database Creation
+    /// </summary>
     class Repo
     {
         public IDbConnection Connection { get; set; }
@@ -50,7 +53,7 @@ namespace SWE3_Zulli.OR.Framework.Repositories
 
             try
             {
-                sqlCreateDBQuery = string.Format("SELECT database_id FROM sys.databases WHERE Name = '{0}'", databaseName);
+                sqlCreateDBQuery = $"SELECT database_id FROM sys.databases WHERE Name = '{databaseName}'";
                 using (IDbCommand sqlCmd = Connection.CreateCommand())
                 {
                     sqlCmd.CommandText = sqlCreateDBQuery;

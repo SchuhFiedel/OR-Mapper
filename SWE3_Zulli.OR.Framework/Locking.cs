@@ -8,45 +8,72 @@ namespace SWE3_Zulli.OR.Framework
 {
     public class Locking : ILocking
     {
-        /// <summary>Gets this session's key.</summary>
+        /// <summary>
+        /// Gets this session's key.
+        /// </summary>
         public string SessionKey
         {
             get; private set;
         }
 
-        /// <summary>Creates a new instance of this class.</summary>
+        /// <summary>
+        /// Creates a new instance of this class. Creates a "locks" table if it does not exist in the database
+        /// </summary>
         public Locking()
         {
             SessionKey = Guid.NewGuid().ToString();
-
+            bool retVal = false;
             try
             {
                 using (IDbCommand cmd = ORMapper.Connection.CreateCommand())
                 {
-                    cmd.CommandText = "CREATE TABLE LOCKS (JCLASS VARCHAR(48) NOT NULL, JOBJECT VARCHAR(48) NOT NULL, JTIME TIMESTAMP NOT NULL, JOWNER VARCHAR(48) NOT NULL)";
-                    cmd.ExecuteNonQuery();
-                }
-            }
-            catch (Exception ex ) 
-            {
-                BasicException.WriteException(ex);
-            }
-            try
-            {
-                using (IDbCommand cmd = ORMapper.Connection.CreateCommand())
-                {
-                    cmd.CommandText = "CREATE UNIQUE INDEX UX_LOCKS ON LOCKS(JCLASS, JOBJECT)";
-                    cmd.ExecuteNonQuery();
+                    cmd.CommandText = $"SELECT EXISTS(SELECT FROM information_schema.tables WHERE table_name = 'locks')";
+                    retVal = (bool)cmd.ExecuteScalar();
+                    if (retVal)
+                    {
+                        Console.WriteLine("lock table Exists!");
+                    }
                 }
             }
             catch(Exception ex)
             {
                 BasicException.WriteException(ex);
             }
+
+            if (!retVal)
+            {
+                try
+                {
+                    using (IDbCommand cmd = ORMapper.Connection.CreateCommand())
+                    {
+                        cmd.CommandText = "CREATE TABLE LOCKS (JCLASS VARCHAR(48) NOT NULL, JOBJECT VARCHAR(48) NOT NULL, JTIME TIMESTAMP NOT NULL, JOWNER VARCHAR(48) NOT NULL)";
+                        cmd.ExecuteNonQuery();
+                        Console.WriteLine("lock table Created!");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    BasicException.WriteException(ex);
+                }
+                try
+                {
+                    using (IDbCommand cmd = ORMapper.Connection.CreateCommand())
+                    {
+                        cmd.CommandText = "CREATE UNIQUE INDEX UX_LOCKS ON LOCKS(JCLASS, JOBJECT)";
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    BasicException.WriteException(ex);
+                }
+            }
         }
 
 
-        /// <summary>Locks an object.</summary>
+        /// <summary>
+        /// Locks an object.
+        /// </summary>
         /// <param name="obj">Object.</param>
         /// <exception cref="LockingException">Thrown when the object could not be locked.</exception>
         /// <exception cref="ObjectLockedException">Thrown when the object is already locked by another instance.</exception>
@@ -68,7 +95,9 @@ namespace SWE3_Zulli.OR.Framework
         }
 
 
-        /// <summary>Releases a lock on an object.</summary>
+        /// <summary>
+        /// Releases a lock on an object.
+        /// </summary>
         /// <param name="obj">Object.</param>
         public void Unlock(object obj)
         { 
@@ -98,7 +127,9 @@ namespace SWE3_Zulli.OR.Framework
             Console.WriteLine($"Successfully Unlocked : {obj.ToString()}");
         }
 
-        /// <summary>Purges timed out locks.</summary>
+        /// <summary>
+        /// Releases all locks.
+        /// </summary>
         public void Purge()
         {
             using (IDbCommand cmd = ORMapper.Connection.CreateCommand())
@@ -110,7 +141,9 @@ namespace SWE3_Zulli.OR.Framework
             Console.WriteLine("Delete All Locks");
         }
 
-        /// <summary>Gets class and object key for an object.</summary>
+        /// <summary>
+        /// Gets class and object key for an object.
+        /// </summary>
         /// <param name="obj">Object.</param>
         /// <returns>Returns a tuple containing class and object key.</returns>
         private (string ClassKey, string ObjectKey) _GetKeys(object obj)
@@ -119,7 +152,9 @@ namespace SWE3_Zulli.OR.Framework
             return (ent.TableName, ent.PrimaryKey.ToColumnType(ent.PrimaryKey.GetValue(obj)).ToString());
         }
 
-        /// <summary>Gets the current lock owner for an object.</summary>
+        /// <summary>
+        /// Gets the current lock owner for an object.
+        /// </summary>
         /// <param name="obj">Object.</param>
         /// <returns>Owner key.</returns>
         private string _GetLock(object obj)
@@ -154,7 +189,9 @@ namespace SWE3_Zulli.OR.Framework
             return rval;
         }
 
-        /// <summary>Creates a lock on an object.</summary>
+        /// <summary>
+        /// Creates a lock on an object.
+        /// </summary>
         /// <param name="obj">Object.</param>
         private void _CreateLock(object obj)
         {

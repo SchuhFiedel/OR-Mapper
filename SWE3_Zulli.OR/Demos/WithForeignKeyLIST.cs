@@ -8,11 +8,11 @@ using System.Threading.Tasks;
 
 namespace SWE3_Zulli.OR.Demos
 {
-    public static class WithFK
+    public static class WithForeignKeyLIST
     {
         public static void Show()
         {
-            Console.WriteLine("\n[04]Create and Load an Object with Foreign Key WITH COURSE(1:n)");
+            Console.WriteLine("\n[04]Create and Load an Object with Foreign Key L I S T(1:n)");
             Console.WriteLine("*************************************");
 
             Student s = new()
@@ -29,8 +29,8 @@ namespace SWE3_Zulli.OR.Demos
 
             Course c = new()
             {
-                ID = 0,
-                Name = "TheFirstCourse",
+                ID = 2,
+                Name = "TheThirdCourse",
                 Teacher = ORMapper.Get<Teacher>(01),
                 Students = new List<Student>()
                 {
