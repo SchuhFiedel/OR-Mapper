@@ -5,7 +5,7 @@
 -- Dumped from database version 13.1
 -- Dumped by pg_dump version 13.1
 
--- Started on 2022-01-09 15:41:25
+-- Started on 2022-01-16 16:42:09
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -47,7 +47,7 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
--- TOC entry 205 (class 1259 OID 24771)
+-- TOC entry 204 (class 1259 OID 24771)
 -- Name: class; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -75,7 +75,7 @@ CREATE TABLE public.course (
 ALTER TABLE public.course OWNER TO postgres;
 
 --
--- TOC entry 203 (class 1259 OID 24736)
+-- TOC entry 206 (class 1259 OID 24812)
 -- Name: locks; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -106,7 +106,7 @@ CREATE TABLE public.person (
 ALTER TABLE public.person OWNER TO postgres;
 
 --
--- TOC entry 204 (class 1259 OID 24740)
+-- TOC entry 203 (class 1259 OID 24740)
 -- Name: student; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -119,7 +119,7 @@ INHERITS (public.person);
 ALTER TABLE public.student OWNER TO postgres;
 
 --
--- TOC entry 206 (class 1259 OID 24797)
+-- TOC entry 205 (class 1259 OID 24797)
 -- Name: student_course; Type: TABLE; Schema: public; Owner: postgres
 --
 
@@ -146,7 +146,7 @@ INHERITS (public.person);
 ALTER TABLE public.teacher OWNER TO postgres;
 
 --
--- TOC entry 2893 (class 2606 OID 24778)
+-- TOC entry 2892 (class 2606 OID 24778)
 -- Name: class class_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -173,7 +173,7 @@ ALTER TABLE ONLY public.person
 
 
 --
--- TOC entry 2895 (class 2606 OID 24801)
+-- TOC entry 2894 (class 2606 OID 24801)
 -- Name: student_course student_course_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -182,7 +182,7 @@ ALTER TABLE ONLY public.student_course
 
 
 --
--- TOC entry 2889 (class 2606 OID 24796)
+-- TOC entry 2888 (class 2606 OID 24796)
 -- Name: student student_id_key; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -191,7 +191,7 @@ ALTER TABLE ONLY public.student
 
 
 --
--- TOC entry 2891 (class 2606 OID 24785)
+-- TOC entry 2890 (class 2606 OID 24785)
 -- Name: student student_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
 
@@ -227,7 +227,7 @@ ALTER TABLE ONLY public.person
 
 
 --
--- TOC entry 2887 (class 1259 OID 24739)
+-- TOC entry 2895 (class 1259 OID 24815)
 -- Name: ux_locks; Type: INDEX; Schema: public; Owner: postgres
 --
 
@@ -270,7 +270,7 @@ ALTER TABLE ONLY public.class
     ADD CONSTRAINT teacherfk FOREIGN KEY (fk_teacher) REFERENCES public.teacher(id);
 
 
--- Completed on 2022-01-09 15:41:25
+-- Completed on 2022-01-16 16:42:09
 
 --
 -- PostgreSQL database dump complete
