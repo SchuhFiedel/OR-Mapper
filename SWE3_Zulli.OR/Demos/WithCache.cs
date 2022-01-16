@@ -14,11 +14,12 @@ namespace SWE3_Zulli.OR.Demos
             Console.WriteLine("\n[06]Cache demonstration");
             Console.WriteLine("-----------------------");
 
+            ORMapper.Cache = null;
             Console.WriteLine("\rWithout cache:");
             _ShowInstances();
 
             Console.WriteLine("\rWith cache:");
-            ORMapper.Cache = new BasicCache();
+            ORMapper.Cache = new TrackerCache();
             _ShowInstances();
         }
 
@@ -29,8 +30,8 @@ namespace SWE3_Zulli.OR.Demos
             for (int i = 0; i < 7; i++)
             {
                 try{
-                    Teacher t = ORMapper.Get<Teacher>(i);
-                    Console.WriteLine(t.LastName + " [" + t.ID + "] ");
+                    Teacher t = ORMapper.Get<Teacher>(1);
+                    Console.WriteLine(t.LastName + " [" + t.ID + "] " + "InstanceNumber " + t.NumberOfInstances);
                 }
                 catch(Exception e)
                 {

@@ -38,6 +38,11 @@ namespace SWE3_Zulli.OR.Models
         [Column(ColumnName = "birthdate")]
         public DateTime BirthDate { get; set; }
 
+        [Ignore]
+        public int NumberOfInstances { get; protected set; } = numberOfInstances++;
+
+        protected static int numberOfInstances;
+
         public string ToString()
         {
             string retval = this.GetType().Name;

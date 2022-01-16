@@ -20,9 +20,6 @@ namespace SWE3_Zulli.OR.Framework
         /// <summary>Entities.</summary>
         private static Dictionary<Type, Table> _EntitiesDict = new();
 
-        /// <summary>Caches objects to reduce load</summary>
-        private static ICollection<object> _cache = new List<object>();
-
         /// <summary>Gets or sets the locking mechanism used by the framework.</summary>
         public static ILocking Lock { get; set; }
 
@@ -63,7 +60,7 @@ namespace SWE3_Zulli.OR.Framework
             {
                 return (Type)_cache.Get(primaryKey);
             }*/
-            return (Type)_InstantiateObject(typeof(Type), primaryKey, _cache);
+            return (Type)_InstantiateObject(typeof(Type), primaryKey);
         }
 
         /// <summary>Saves an object.</summary>
@@ -144,23 +141,12 @@ namespace SWE3_Zulli.OR.Framework
         /// <summary>Searches the cached objects for an object and returns it.</summary>
         /// <param name="type">Type.</param>
         /// <param name="primarykey">Primary key.</param>
-        /// <param name="localCache">Cached objects.</param>
         /// <returns>Returns the cached object that matches the current reader or NULL if no such object has been found.</returns>
-        internal static object _SearchCache(Type type, object primarykey, ICollection<object> localCache)
+        internal static object _SearchCache(Type type, object primarykey)
         {
             if (Cache != null && Cache.ContainsObject(type, primarykey))
             {
                 return Cache.GetObject(type, primarykey);
-            }
-            else if (localCache != null)
-            {
-                foreach (object i in localCache)
-                {
-                    if (i.GetType() != type)
-                        continue;
-                    if (type._GetTable().PrimaryKey.GetValue(i).Equals(primarykey))
-                        return i;
-                }
             }
             return null;
         }
@@ -169,42 +155,43 @@ namespace SWE3_Zulli.OR.Framework
         /// <summary>Creates an object from a database reader.</summary>
         /// <param name="type">Type.</param>
         /// <param name="reader">Reader.</param>
-        /// <param name="localCache">Local _cache.</param>
         /// <returns>Object.</returns>
-        internal static object _InstantiateObject(Type type, Dictionary<string, object>columnValuePairs, ICollection<object> localCache)
+        internal static object _InstantiateObject(Type type, Dictionary<string, object>columnValuePairs)
         {
+            try
+            {
             //Connection;
             Table ent = type._GetTable();
-            object returnValue = _SearchCache(type, ent.PrimaryKey.ToFieldType(columnValuePairs[ent.PrimaryKey.ColumnName], localCache),localCache);
+            object returnValue = _SearchCache(type, ent.PrimaryKey.ToFieldType(columnValuePairs[ent.PrimaryKey.ColumnName]));
             bool foundincache = true;
             if (returnValue == null)
             {
-                if (localCache == null) 
-                {
-                    
-                    localCache = new List<object>(); 
-                }
                 foundincache = false;
-                localCache.Add(returnValue = Activator.CreateInstance(type));
+                returnValue = Activator.CreateInstance(type);
             }
 
             foreach (Column internalField in ent.InternalFields)
             {
-                internalField.SetValue(returnValue, internalField.ToFieldType(columnValuePairs[internalField.ColumnName],localCache));
+                internalField.SetValue(returnValue, internalField.ToFieldType(columnValuePairs[internalField.ColumnName]));
             }
 
             if (foundincache == true)
             {
                 foreach (Column externalField in ent.ExternalFields)
                 {
-                    externalField.SetValue(returnValue, externalField.Fill(Activator.CreateInstance(externalField.Type), returnValue, localCache));
+                    externalField.SetValue(returnValue, externalField.Fill(Activator.CreateInstance(externalField.Type), returnValue));
                 }
             }
-            Cache.PutObject(returnValue);
+            if(Cache != null) 
+                Cache.PutObject(returnValue);
 
             Connection.Close();
             return returnValue;
-            
+            }
+            catch
+            {
+                throw new ArgumentOutOfRangeException("No Object with this Primary Key was found!");
+            }
         }
 
         /// <summary>
@@ -231,12 +218,11 @@ namespace SWE3_Zulli.OR.Framework
         /// <summary>Creates an instance by its primary keys.</summary>
         /// <param name="type">Type.</param>
         /// <param name="primaryKey">Primary key.</param>
-        /// <param name="localCache">Local _cache.</param>
         /// <returns>Object.</returns>
-        internal static object _InstantiateObject(Type type, object primaryKey, ICollection<object> localCache)
+        internal static object _InstantiateObject(Type type, object primaryKey)
         {
             //Connection.Open();
-            object returnValue = _SearchCache(type, primaryKey, localCache);
+            object returnValue = _SearchCache(type, primaryKey);
 
             if (returnValue == null)
             {
@@ -254,7 +240,7 @@ namespace SWE3_Zulli.OR.Framework
                     Dictionary<string, object> columnValuePairs = DataReaderToDictionary(re, table);
                     re.Close();
                     cmd.Dispose();
-                    returnValue = _InstantiateObject(type, columnValuePairs, localCache);
+                    returnValue = _InstantiateObject(type, columnValuePairs);
                 }
                 
             }
@@ -278,12 +264,12 @@ namespace SWE3_Zulli.OR.Framework
                 _DeleteObject(obj, bse, true);
             }*/
             //else {
-                _DeleteObject(obj, ent, false, _cache);
+                _DeleteObject(obj, ent, true);
             //}
             Connection.Close();
         }
 
-        internal static void _DeleteObject(object primaryKey, Table table, bool isBase, ICollection<object> _cache)
+        internal static void _DeleteObject(object primaryKey, Table table, bool isBase)
         {
             using (IDbCommand cmd = Connection.CreateCommand())
             {
@@ -295,17 +281,13 @@ namespace SWE3_Zulli.OR.Framework
                 cmd.ExecuteNonQuery();
             }
             object delObj = null;
-            if (Cache != null || _cache != null)
+            if (Cache != null)
             {
-                delObj = _SearchCache(typeof(Type), primaryKey, _cache);
+                delObj = _SearchCache(typeof(Type), primaryKey);
             }
             if(Cache != null && delObj != null)
             {
                 Cache.RemoveObject(delObj);
-            }
-            if(_cache != null && delObj != null)
-            {
-                _cache.Remove(delObj);
             }
         }
 

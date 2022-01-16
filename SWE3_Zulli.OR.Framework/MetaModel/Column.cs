@@ -130,11 +130,11 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
         /// <summary>Returns a field type equivalent for a database column type value.</summary>
         /// <param name="value">Value.</param>
         /// <returns>Field type representation of the value.</returns>
-        public object ToFieldType(object value, ICollection<object> localCache)
+        public object ToFieldType(object value)
         {
             if(IsForeignKey)
             {
-                return ORMapper._InstantiateObject(Type, value, localCache);
+                return ORMapper._InstantiateObject(Type, value);
             }
 
             if(Type == typeof(bool))
@@ -176,9 +176,8 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
         /// <summary>Fills a list for a foreign key.</summary>
         /// <param name="list">List.</param>
         /// <param name="obj">Object.</param>
-        /// <param name="localCache">Local _cache.</param>
         /// <returns>List.</returns>
-        public object Fill(object list, object obj, ICollection<object> localCache)
+        public object Fill(object list, object obj)
         {
             using (IDbCommand cmd = ORMapper.Connection.CreateCommand())
             {
@@ -202,7 +201,13 @@ namespace SWE3_Zulli.OR.Framework.MetaModel
                 {
                     while (re.Read())
                     {
-                        list.GetType().GetMethod("Add").Invoke(list, new object[] { ORMapper._InstantiateObject(Type.GenericTypeArguments[0], re.GetValue(re.GetOrdinal("id")) , localCache) });
+                        list.GetType()
+                            .GetMethod("Add")
+                            .Invoke(list, new object[] 
+                            {
+                                ORMapper._InstantiateObject(Type.GenericTypeArguments[0], 
+                                re.GetValue(re.GetOrdinal("id"))) 
+                            });
                     }
                 }
             }

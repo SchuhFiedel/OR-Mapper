@@ -133,7 +133,7 @@ namespace SWE3_Zulli.OR.Framework.Cache
 
             if (h.ContainsKey(pk))
             {
-                return (h[pk] == _ComputeHash(obj));
+                return (h[pk] != _ComputeHash(obj));
             }
 
             return true;

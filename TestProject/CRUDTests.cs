@@ -17,7 +17,7 @@ namespace TestProject
     */
 
 
-    public class Tests
+    public class CRUDTests
     {
         private int _stIDCount = 0;
         private int _tcIDCount = 0;
@@ -33,7 +33,7 @@ namespace TestProject
         }
 
         [Test, Order(0)]
-        public void InsertStudent()
+        public void ORMapper_InsertStudent()
         {
             Student s = new Student()
             {
@@ -45,10 +45,11 @@ namespace TestProject
                 Grade = 15
             };
             ORMapper.Save(s);
+            Assert.Pass();
         }
 
         [Test, Order(1)]
-        public void GetStudent()
+        public void ORMapper_GetStudent()
         {
             Student s = ORMapper.Get<Student>(_stIDCount);
             Assert.AreEqual("Bongo", s.FirstName);
@@ -58,5 +59,44 @@ namespace TestProject
             Assert.AreEqual(15, s.Grade);
         }
 
+        [Test, Order(2)]
+        public void ORMapper_UpdateStudent()
+        {
+            Student s = new Student()
+            {
+                FirstName = "CCCCCC",
+                LastName = "KKKKKK",
+                BirthDate = DateTime.Today,
+                ID = _stIDCount,
+                Gender = Gender.FEMALE,
+                Grade = 3
+            };
+            ORMapper.Save(s);
+
+            s = ORMapper.Get<Student>(s.ID);
+
+            Assert.AreEqual("CCCCCC", s.FirstName);
+            Assert.AreEqual("KKKKKK", s.LastName);
+            Assert.AreEqual(DateTime.Today, s.BirthDate);
+            Assert.AreEqual(Gender.FEMALE, s.Gender);
+            Assert.AreEqual(3, s.Grade);
+        }
+
+        [Test, Order(3)]
+        public void ORMapper_DeleteStudent()
+        {
+            Student s = new Student()
+            {
+                FirstName = "CCCCCC",
+                LastName = "KKKKKK",
+                BirthDate = DateTime.Today,
+                ID = _stIDCount,
+                Gender = Gender.FEMALE,
+                Grade = 3
+            };
+            ORMapper.Delete(s);
+
+            Assert.Throws<ArgumentOutOfRangeException>( () => ORMapper.Get<Student>(s.ID));
+        }
     }
 }

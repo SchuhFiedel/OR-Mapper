@@ -12,7 +12,7 @@ namespace SWE3_Zulli.OR.Demos
     {
         public static void Show()
         {
-            Console.WriteLine("\n[05]Create and Load an Object with M:N");
+            Console.WriteLine("\n[05]Create and Load an Object with M:N and List");
             Console.WriteLine("*************************************");
 
             Course c = new Course();
